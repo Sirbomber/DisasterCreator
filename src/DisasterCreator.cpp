@@ -33,7 +33,8 @@ DisasterCreator::DisasterCreator()
 
 	ignoreMinTimeChance = 0;
 
-	volcanoesDefined = false;
+	numZonesDefined = 0;
+	numVolcanoesDefined = 0;
 }
 
 DisasterCreator::~DisasterCreator()

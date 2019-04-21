@@ -42,17 +42,15 @@ LOCATION DisasterCreator::TargetLocationInZone(disType type)
 	// Iterate through the zone list for each zone defined for the current disaster type.  Pick one at random.
 	int zoneScore = 0;
 	DisasterZone *toUse = nullptr;
-	list<DisasterZone>::iterator znIt = AllZones.begin(),
-					            znEnd = AllZones.end();
-	for (znIt; znIt != znEnd; znIt++)
+	for (int i = 0; i < numZonesDefined; i++)
 	{
-		if (znIt->zoneType == type)
+		if (AllZones[i].zoneType == type)
 		{
 			int tScore = TethysGame::GetRand(100) + 1;	// +1 so it will always be > 0
 			if (tScore > zoneScore)
 			{
 				zoneScore = tScore;
-				toUse = &(*znIt);
+				toUse = &(AllZones[i]);
 			}
 		}
 	}

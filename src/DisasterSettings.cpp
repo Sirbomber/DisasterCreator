@@ -165,6 +165,13 @@ void DisasterCreator::SetIgnoreChance(int weight)
 
 void DisasterCreator::AddDisasterZone(disType type, MAP_RECT zone)
 {
+	// Limit check
+	if (numZonesDefined >= MAX_SIZE)
+	{
+		TethysGame::AddMessage(-1, -1, "DC Error: Zone limit reached!", -1, sndDirt);
+		return;
+	}
+
 	// Sanity check
 	if (type < disQuake || type > disNone)
 	{
@@ -179,10 +186,9 @@ void DisasterCreator::AddDisasterZone(disType type, MAP_RECT zone)
 	}
 
 	// Add the zone to our list.
-	DisasterZone newZone;
-	newZone.zoneType = type;
-	newZone.zoneRect = zone;
-	AllZones.push_back(newZone);
+	AllZones[numZonesDefined].zoneType = type;
+	AllZones[numZonesDefined].zoneRect = zone;
+	numZonesDefined++;
 }
 
 Trigger DisasterCreator::SetCallbackTrigger(char const *callback, int minDelay, int maxDelay)

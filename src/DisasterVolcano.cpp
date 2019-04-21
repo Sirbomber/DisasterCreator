@@ -6,6 +6,12 @@
 
 void DisasterCreator::DefineVolcano(LOCATION volcLoc, int lavaAnimTime, int eruptTime, disVolcanoDir dir, disSpeed speed)
 {
+	// Limit check.
+	if (numVolcanoesDefined >= MAX_SIZE)
+	{
+		TethysGame::AddMessage(-1, -1, "DC Error: Too many volcanoes!", -1, sndDirt);
+	}
+
 	// Sanity checks.
 	if (lavaAnimTime > eruptTime ||
 		dir < volSouth || dir > volNone ||
@@ -16,16 +22,15 @@ void DisasterCreator::DefineVolcano(LOCATION volcLoc, int lavaAnimTime, int erup
 	}
 
 	// Record new volcano data to list
-	volcanoesDefined = true;
-	Volcano newVolcano;
-	newVolcano.animStarted = false;
-	newVolcano.eruptionSet = false;
-	newVolcano.eruptAt = volcLoc;
-	newVolcano.warnTime = lavaAnimTime;
-	newVolcano.eruptTime = eruptTime;
-	newVolcano.direction = dir;
-	newVolcano.speed = speed;
-	AllVolcanoes.push_back(newVolcano);
+	AllVolcanoes[numVolcanoesDefined].animStarted = false;
+	AllVolcanoes[numVolcanoesDefined].eruptionSet = false;
+	AllVolcanoes[numVolcanoesDefined].eruptAt = volcLoc;
+	AllVolcanoes[numVolcanoesDefined].warnTime = lavaAnimTime;
+	AllVolcanoes[numVolcanoesDefined].eruptTime = eruptTime;
+	AllVolcanoes[numVolcanoesDefined].direction = dir;
+	AllVolcanoes[numVolcanoesDefined].speed = speed;
+	numVolcanoesDefined++;
+
 
 	// Set tiles as lava-possible.
 	GameMap::SetLavaPossible(LOCATION(volcLoc.x, volcLoc.y), 1);
@@ -35,53 +40,51 @@ void DisasterCreator::DefineVolcano(LOCATION volcLoc, int lavaAnimTime, int erup
 
 void DisasterCreator::CheckVolcanoes()
 {
-	// Check if no active volcanoes defined
-	if (!volcanoesDefined)
-	{
-		return;
-	}
-
 	// Iterate through the list of volcanoes.
-	list<Volcano>::iterator vIt = AllVolcanoes.begin(),
-		vEnd = AllVolcanoes.end();
-	while (vIt != vEnd)
+	int i = 0;
+	while (i < numVolcanoesDefined)
 	{
 		// Check if the warn time has passed.
-		if (!vIt->animStarted &&
-			TethysGame::Tick() >= vIt->warnTime)
+		if (!AllVolcanoes[i].animStarted &&
+			TethysGame::Tick() >= AllVolcanoes[i].warnTime)
 		{
-			AnimateVolcano(&(*vIt));
-			vIt++;
+			AnimateVolcano(&AllVolcanoes[i]);
+			i++;
 		}
 
 		// Check if the eruption time has passed.
-		else if (!vIt->eruptionSet &&
-			     TethysGame::Tick() >= vIt->eruptTime)
+		else if (!AllVolcanoes[i].eruptionSet &&
+			     TethysGame::Tick() >= AllVolcanoes[i].eruptTime)
 		{
-			EruptVolcano(&(*vIt));
-			vIt++;
+			EruptVolcano(&AllVolcanoes[i]);
+			i++;
 		}
 
 		// Check if we should stop the animation.
 		// Once we do that, we don't care about this volcano anymore, so we can remove it from the list.
-		else if (vIt->eruptionSet &&
-			TethysGame::Tick() >= vIt->eruptTime + 1000)
+		else if (!AllVolcanoes[i].eruptionSet &&
+			TethysGame::Tick() >= AllVolcanoes[i].eruptTime + 1000)
 		{
-			StopVolcano(&(*vIt));
-			AllVolcanoes.erase(vIt++);
+			StopVolcano(&AllVolcanoes[i]);
+			EraseVolcano(i);
 		}
 
 		else
 		{
-			vIt++;
+			i++;
 		}
 	}
+}
 
-	// Check if the volcano list is empty now.
-	if (AllVolcanoes.empty())
+void DisasterCreator::EraseVolcano(int i)
+{
+	// Push every volcano further down the array up one slot.
+	for (i; i < numVolcanoesDefined-1; i++)
 	{
-		volcanoesDefined = false;
+		AllVolcanoes[i] = AllVolcanoes[i + 1];
 	}
+
+	numVolcanoesDefined--;
 }
 
 void DisasterCreator::AnimateVolcano(Volcano *v)
