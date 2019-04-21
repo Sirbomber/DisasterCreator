@@ -10,9 +10,12 @@
 	- Added weights for the different disaster targeting methods.
 	- Added support for volcanoes.
    Version 1.00 -- 4/12/19
-    - Initial release.
+    - Initial (unannounced) release.
 	- Finished work on disaster targeting.
 	- Added SetLavaTiles function.
+   Version 1.10 -- 4/21/19
+   - Replaced STL lists with static arrays so saving will work.
+   - Finalized sample level.
 */
 
 #ifndef DISASTERCREATOR
@@ -21,7 +24,6 @@
 #include <Outpost2DLL.h>
 #include <OP2Helper.h>
 #include <math.h>
-#include <list>
 #include <vector>
 
 #include "DcEnums.h"
@@ -30,6 +32,8 @@
 using namespace std;
 
 // ----------------------------------------------
+
+const int MAX_SIZE = 20;			// Maximum number of volcanoes/disaster zones a level creator may define.
 
 class DisasterCreator
 {
@@ -72,6 +76,7 @@ class DisasterCreator
 		void AnimateVolcano(Volcano *v);
 		void EruptVolcano(Volcano *v);
 		void StopVolcano(Volcano *v);
+		void EraseVolcano(int i);
 		int GetSpreadSpeed(disSpeed speed);
 
 		// Disaster targetting
@@ -122,11 +127,12 @@ class DisasterCreator
 			plyrWeight;		// Chance to target a point near a player's base or units
 
 		// Disaster zones
-		list<DisasterZone> AllZones;
+		DisasterZone AllZones[MAX_SIZE];
+		int numZonesDefined;
 
 		// Defined volcanoes
-		list<Volcano> AllVolcanoes;
-		bool volcanoesDefined;
+		Volcano AllVolcanoes[MAX_SIZE];
+		int numVolcanoesDefined;
 };
 
 #endif
