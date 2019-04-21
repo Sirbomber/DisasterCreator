@@ -60,14 +60,15 @@ struct SaveData
 		Trig_TubeToAdvLav,
 		Trig_BuiltRareSmelter,
 		Trig_ArmyStart,
-		Trig_Attack1,
-		Trig_MoreTech1;
+		Trig_Attacks[10],
+		Trig_MoreTech[4];
 
 };
 SaveData SD;
 
 // Etc
 void SetupPlayer();
+void SetupPlayer_Debug();
 void SetupAI();
 void SetupVictoryDefeat();
 
@@ -87,6 +88,7 @@ Export int InitProc()
 	SD.DC.SetMapSize(128, 128);
 	SD.DC.SetMinimumWait(3700);						// Define the minimum time, after a disaster has occurred, to wait before spawning another disaster.
 	SD.DC.SetIgnoreChance(2);						// Define a chance, between 0 and 100 (inclusive), for the engine to ignore the minimum wait time when trying to spawn a disaster.  In this case, we have a 2% chance.
+	SD.DC.SetNumPlayers(TethysGame::NoPlayers());	// Since the DC object is stored in the savedata struct, it gets initialized before OP2 sets the number of players.
 	
 	// Tell the engine which disasters you want to allow...
 	SD.DC.EnableDisaster(disQuake);					// Allow quakes to happen.
@@ -117,7 +119,7 @@ Export int InitProc()
 	//  3: Tick the first "volcano watch initiated" warning should play.  Volcano will erupt 100 ticks (10 marks) later.
 	//  4: Which volcano animation to play.  Choices are volSouthWest, volSouthEast, volSouth, and volNone.
 	//  5: Roughly how fast you'd like the lava to flow.
-	SD.DC.DefineVolcano(LOCATION(113 + 31, 13 - 1), 38000, 42000, volSouthWest, spdFast);
+	SD.DC.DefineVolcano(LOCATION(113 + 31, 13 - 1), 66600, 72000, volSouthWest, spdFast);
 
 	// By default, this function will set all "black rock" tile to lava-possible.  You can optionally pass in a list of
 	// celltypes; if you do only black rock tiles of those celltypes will be lava-possible.
@@ -128,8 +130,8 @@ Export int InitProc()
 	SD.DC_Callback = SD.DC.SetCallbackTrigger("DisasterCreator_Callback", 200);
 
 	// Also define some triggers to make the disasters a little tougher as the game goes on.
-	SD.DC_Timer2 = CreateTimeTrigger(1, 1, 57000, "StrongerDisasters");
-	SD.DC_Timer2 = CreateTimeTrigger(1, 1, 64000, "StrongestDisasters");
+	SD.DC_Timer2 = CreateTimeTrigger(1, 1, 67000, "StrongerDisasters");
+	SD.DC_Timer2 = CreateTimeTrigger(1, 1, 114000, "StrongestDisasters");
 
 	return 1; // return 1 if OK; 0 on failure
 }
@@ -299,6 +301,126 @@ void SetupPlayer()
 	}
 }
 
+void SetupPlayer_Debug()
+{
+	// Initialization
+	Player[0].CenterViewOn(18 + 31, 14 - 1);
+	Player[0].SetColorNumber(1);
+	Player[0].GoEden();
+
+	// Common beacons
+	TethysGame::CreateBeacon(mapMiningBeacon, 17 + 31, 36 - 1, 0, 1, 1);
+	TethysGame::CreateBeacon(mapMiningBeacon, 37 + 31, 30 - 1, 0, 2, 2);
+	TethysGame::CreateBeacon(mapMiningBeacon, 67 + 31, 3 - 1, 0, 0, 0);
+	TethysGame::CreateBeacon(mapMiningBeacon, 16 + 31, 60 - 1, 0, 1, 1);
+	TethysGame::CreateBeacon(mapMiningBeacon, 89 + 31, 77 - 1, 0, 0, 0);
+	TethysGame::CreateBeacon(mapMiningBeacon, 92 + 31, 24 - 1, 0, 0, 0);
+
+	// Rare beacons
+	TethysGame::CreateBeacon(mapMiningBeacon, 67 + 31, 17 - 1, 1, 1, 1);
+	TethysGame::CreateBeacon(mapMiningBeacon, 11 + 31, 31 - 1, 1, 2, 1);
+	TethysGame::CreateBeacon(mapMiningBeacon, 33 + 31, 118 - 1, 1, 0, 0);
+	TethysGame::CreateBeacon(mapMiningBeacon, 110 + 31, 21 - 1, 1, 0, 0);
+
+	// Fumaroles
+	TethysGame::CreateBeacon(mapFumarole, 94 + 31, 12 - 1, -1, -1, -1);
+
+	// Magma vents
+	TethysGame::CreateBeacon(mapMagmaVent, 25 + 31, 98 - 1, -1, -1, -1);
+
+	Player[0].SetKids(10);
+	Player[0].SetWorkers(40);
+	Player[0].SetScientists(35);
+	Player[0].SetOre(6000);
+	Player[0].SetFoodStored(8000);
+	Player[0].SetTechLevel(7);
+
+	Unit Unit1;
+
+	TethysGame::CreateUnit(Unit1, mapCommandCenter, LOCATION(18 + 31, 14 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapStructureFactory, LOCATION(22 + 31, 13 - 1), 0, mapNone, 0);
+		Unit1.SetFactoryCargo(0, mapCommonOreSmelter, mapNone);
+		Unit1.SetFactoryCargo(1, mapVehicleFactory, mapNone);
+		Unit1.SetFactoryCargo(2, mapRareOreSmelter, mapNone);
+		Unit1.SetFactoryCargo(3, mapAdvancedLab, mapNone);
+		Unit1.SetFactoryCargo(4, mapSpaceport, mapNone);
+	TethysGame::CreateUnit(Unit1, mapCommonOreSmelter, LOCATION(30 + 31, 22 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapCommonOreSmelter, LOCATION(18 + 31, 33 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapCommonOreSmelter, LOCATION(13 + 31, 33 - 1), 0, mapNone, 0);
+	CreateTubeOrWallLine(18 + 31, 22 - 1, 18 + 31, 31 - 1, mapTube);
+	TethysGame::CreateUnit(Unit1, mapTokamak, LOCATION(8 + 31, 6 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapTokamak, LOCATION(8 + 31, 3 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapCommonOreMine, LOCATION(17 + 31, 36 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapAgridome, LOCATION(18 + 31, 17 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapAgridome, LOCATION(18 + 31, 20 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapAdvancedResidence, LOCATION(18 + 31, 10 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapAdvancedResidence, LOCATION(18 + 31, 6 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapResidence, LOCATION(14 + 31, 17 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapResidence, LOCATION(14 + 31, 20 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapAgridome, LOCATION(23 + 31, 7 - 1), 0, mapNone, 0);
+	TethysGame::CreateWallOrTube(16 + 31, 17 - 1, 0, mapTube);
+	TethysGame::CreateUnit(Unit1, mapStandardLab, LOCATION(23 + 31, 10 - 1), 0, mapNone, 0);
+	CreateTubeOrWallLine(26 + 31, 13 - 1, 27 + 31, 21 - 1, mapTube);
+	TethysGame::CreateUnit(Unit1, mapNursery, LOCATION(27 + 31, 10 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapUniversity, LOCATION(27 + 31, 7 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapMedicalCenter, LOCATION(30 + 31, 10 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapMedicalCenter, LOCATION(30 + 31, 7 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapMedicalCenter, LOCATION(33 + 31, 7 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapMedicalCenter, LOCATION(36 + 31, 7 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapRecreationFacility, LOCATION(33 + 31, 10 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapRecreationFacility, LOCATION(36 + 31, 10 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapRecreationFacility, LOCATION(39 + 31, 10 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapRobotCommand, LOCATION(39 + 31, 7 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapVehicleFactory, LOCATION(29 + 31, 13 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapVehicleFactory, LOCATION(34 + 31, 13 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapGORF, LOCATION(23 + 31, 4 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapDIRT, LOCATION(27 + 31, 4 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapRareOreSmelter, LOCATION(63 + 31, 18 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapCommonOreMine, LOCATION(67 + 31, 17 - 1), 0, mapNone, 0);
+	TethysGame::CreateUnit(Unit1, mapGeothermalPlant, LOCATION(95 + 31, 12 - 1), 0, mapNone, 0);
+
+	// Vehicles
+	TethysGame::CreateUnit(Unit1, mapConVec, LOCATION(24 + 31, 14 - 1), 0, mapNone, 4);
+	Unit1.DoSetLights(1);
+	TethysGame::CreateUnit(Unit1, mapConVec, LOCATION(24 + 31, 15 - 1), 0, mapNone, 4);
+	Unit1.DoSetLights(1);
+	TethysGame::CreateUnit(Unit1, mapConVec, LOCATION(25 + 31, 15 - 1), 0, mapNone, 4);
+	Unit1.DoSetLights(1);
+
+	TethysGame::CreateUnit(Unit1, mapCargoTruck, LOCATION(28 + 31, 25 - 1), 0, mapNone, 2);
+	Unit1.DoSetLights(1);
+	TethysGame::CreateUnit(Unit1, mapCargoTruck, LOCATION(22 + 31, 27 - 1), 0, mapNone, 3);
+	Unit1.DoSetLights(1);
+	TethysGame::CreateUnit(Unit1, mapCargoTruck, LOCATION(29 + 31, 30 - 1), 0, mapNone, 4);
+	Unit1.DoSetLights(1);
+	TethysGame::CreateUnit(Unit1, mapCargoTruck, LOCATION(20 + 31, 34 - 1), 0, mapNone, 4);
+	Unit1.DoSetLights(1);
+	TethysGame::CreateUnit(Unit1, mapCargoTruck, LOCATION(60 + 31, 22 - 1), 0, mapNone, 4);
+	Unit1.DoSetLights(1);
+	TethysGame::CreateUnit(Unit1, mapCargoTruck, LOCATION(61 + 31, 22 - 1), 0, mapNone, 4);
+	Unit1.DoSetLights(1);
+	TethysGame::CreateUnit(Unit1, mapEarthworker, LOCATION(15 + 31, 15 - 1), 0, mapNone, 1);
+	Unit1.DoSetLights(1);
+	TethysGame::CreateUnit(Unit1, mapEarthworker, LOCATION(16 + 31, 15 - 1), 0, mapNone, 1);
+	Unit1.DoSetLights(1);
+	TethysGame::CreateUnit(Unit1, mapRoboSurveyor, LOCATION(29 + 31, 16 - 1), 0, mapNone, 7);
+	Unit1.DoSetLights(1);
+	TethysGame::CreateUnit(Unit1, mapRoboMiner, LOCATION(30 + 31, 16 - 1), 0, mapNone, 7);
+	Unit1.DoSetLights(1);
+
+	TethysGame::CreateUnit(Unit1, mapTiger, LOCATION(59 + 31, 29 - 1), 0, mapThorsHammer, 0);
+	Unit1.DoSetLights(1);
+	TethysGame::CreateUnit(Unit1, mapTiger, LOCATION(59 + 31, 30 - 1), 0, mapThorsHammer, 0);
+	Unit1.DoSetLights(1);
+	TethysGame::CreateUnit(Unit1, mapTiger, LOCATION(59 + 31, 31 - 1), 0, mapThorsHammer, 0);
+	Unit1.DoSetLights(1);
+	TethysGame::CreateUnit(Unit1, mapTiger, LOCATION(59 + 31, 32 - 1), 0, mapThorsHammer, 0);
+	Unit1.DoSetLights(1);
+
+	CreateTubeOrWallLine(41 + 31, 10 - 1, 63 + 31, 21 - 1, mapTube);
+
+}
+
 void SetupVictoryDefeat()
 {
 	// Evacuation Module
@@ -382,6 +504,7 @@ void SetupAI()
 	SD.SF = CreateBuildingGroup(1);
 	SD.Earthworker = CreateBuildingGroup(1);
 	SD.Common = CreateMiningGroup(1);
+	SD.Rare = CreateMiningGroup(1);
 	
 
 	// Structures
@@ -438,6 +561,7 @@ void SetupAI()
 	SD.VF[0].RecordVehReinforceGroup(SD.Common, 9999);
 	SD.VF[0].RecordVehReinforceGroup(SD.SF, 700);
 	SD.VF[0].RecordVehReinforceGroup(SD.Earthworker, 300);
+	SD.VF[0].RecordBuilding(LOCATION(118 + 31, 121 - 1), mapCommonOreMine, mapNone, SD.Common);
 
 	SD.Common.Setup(Mine, Smelter, MAP_RECT(116 + 31, 114 - 1, 123 + 31, 124 - 1));
 	SD.Common.SetTargCount(mapCargoTruck, mapNone, 4);
@@ -458,8 +582,19 @@ void SetupAI()
 	// Triggers
 	SD.Trig_TubeToAdvLav = CreateCountTrigger(1, 1, 1, mapNursery, mapNone, 1, cmpEqual, "AI_StartTubingToAdvLab");
 	SD.Trig_ArmyStart = CreateTimeTrigger(1, 1, 14000, "AI_StartBuildingAnArmy");
-	SD.Trig_Attack1 = CreateTimeTrigger(1, 1, 19000, "AI_Attack1");
-	SD.Trig_MoreTech1 = CreateTimeTrigger(1, 1, 26000, "AI_MoreTech1");
+	SD.Trig_Attacks[0] = CreateTimeTrigger(1, 1, 21000, "AI_Attack1");
+	SD.Trig_Attacks[1] = CreateTimeTrigger(1, 1, 29000, "AI_Attack2");
+	SD.Trig_Attacks[2] = CreateTimeTrigger(1, 1, 37000, "AI_Attack3");
+	SD.Trig_Attacks[3] = CreateTimeTrigger(1, 1, 46000, "AI_Attack3"); // Repeat
+	SD.Trig_Attacks[4] = CreateTimeTrigger(1, 1, 52000, "AI_Attack4");
+	SD.Trig_Attacks[5] = CreateTimeTrigger(1, 1, 61000, "AI_Attack4"); // Repeat
+	SD.Trig_Attacks[6] = CreateTimeTrigger(1, 1, 70000, "AI_Attack5");
+	SD.Trig_Attacks[7] = CreateTimeTrigger(1, 1, 81000, "AI_Attack6");
+	SD.Trig_MoreTech[0] = CreateTimeTrigger(1, 1, 34000, "AI_MoreTech1");
+	SD.Trig_MoreTech[1] = CreateTimeTrigger(1, 1, 51000, "AI_MoreTech2");
+	SD.Trig_MoreTech[1] = CreateTimeTrigger(1, 1, 73000, "AI_MoreTech3");
+	SD.Trig_MoreTech[1] = CreateTimeTrigger(1, 1, 90700, "AI_MoreTech4");
+	SD.Trig_BuiltRareSmelter = CreateTimeTrigger(1, 0, 300, "AI_RareOre1Ready");
 }
 
 Export void AI_StartTubingToAdvLab()
@@ -478,16 +613,18 @@ Export void AI_StartTubingToAdvLab()
 	for (int y = 127; y >= 122; y--)
 	{
 		SD.Earthworker.RecordWall(LOCATION(107 + 31, y - 1), mapWall);
-		if (y != 125 - 1)
-		{
-			SD.Earthworker.RecordWall(LOCATION(113 + 31, y - 1), mapWall);
-		}
 	}
 
 	for (int x = 108; x <= 112; x++)
 	{
 		SD.Earthworker.RecordWall(LOCATION(x + 31, 122 - 1), mapWall);
 	}
+
+	SD.Earthworker.RecordWall(LOCATION(113 + 31, 122 - 1), mapWall);
+	SD.Earthworker.RecordWall(LOCATION(113 + 31, 123 - 1), mapWall);
+	SD.Earthworker.RecordWall(LOCATION(113 + 31, 124 - 1), mapWall);
+	SD.Earthworker.RecordWall(LOCATION(113 + 31, 126 - 1), mapWall);
+	SD.Earthworker.RecordWall(LOCATION(113 + 31, 127 - 1), mapWall);
 }
 
 Export void AI_StartBuildingAnArmy()
@@ -495,7 +632,7 @@ Export void AI_StartBuildingAnArmy()
 	// Setup defense and reinforce fight group
 	SD.Defense = CreateFightGroup(1);
 	SD.Defense.SetRect(MAP_RECT(107 + 31, 91 - 1, 114 + 31, 96 - 1));
-	SD.Defense.SetTargCount(mapLynx, mapLaser, 9);
+	SD.Defense.SetTargCount(mapLynx, mapLaser, 5);
 	SD.Defense.AddGuardedRect(MAP_RECT(105 + 31, 95 - 1, 128 + 31, 127 - 1));
 	SD.Defense.AddGuardedRect(MAP_RECT(96 + 31, 104 - 1, 105 + 31, 117 - 1));
 	SD.VF[0].RecordVehReinforceGroup(SD.Defense, 4000);
@@ -510,14 +647,166 @@ Export void AI_Attack1()
 	SD.Offense.TakeAllUnits(SD.Defense);
 
 	// Upgrade the defense group
+	SD.Defense.SetTargCount(mapLynx, mapLaser, 9);
+
+	// Have the AI keep pretending it needs to manage morale and stuff.
+	SD.SF.RecordBuilding(LOCATION(117 + 31, 100 - 1), mapDIRT, mapNone);
+	SD.SF.RecordBuilding(LOCATION(110 + 31, 100 - 1), mapResidence, mapNone);
+	SD.SF.RecordBuilding(LOCATION(121 + 31, 100 - 1), mapMedicalCenter, mapNone);
+	SD.SF.RecordBuilding(LOCATION(124 + 31, 100 - 1), mapMedicalCenter, mapNone);
+}
+
+Export void AI_Attack2()
+{
+	// Setup attack group
+	SD.Offense.SetAttackType(mapCommandCenter);
+	SD.Offense.DoAttackEnemy();
+	SD.Offense.TakeAllUnits(SD.Defense);
+
+	// Upgrade the defense group
+	SD.Defense.SetTargCount(mapLynx, mapLaser, 6);
+	SD.Defense.SetTargCount(mapLynx, mapRailGun, 3);
+	SD.Defense.SetTargCount(mapLynx, mapEMP, 1);
+}
+
+Export void AI_Attack3()
+{
+	// Setup attack group
+	SD.Offense.SetAttackType(mapCommandCenter);
+	SD.Offense.DoAttackEnemy();
+	SD.Offense.TakeAllUnits(SD.Defense);
+
+	// Upgrade the defense group
 	SD.Defense.SetTargCount(mapLynx, mapLaser, 4);
 	SD.Defense.SetTargCount(mapLynx, mapRailGun, 6);
 	SD.Defense.SetTargCount(mapLynx, mapEMP, 4);
 }
 
+Export void AI_Attack4()
+{
+	// Setup attack group
+	SD.Offense.SetAttackType(mapCommandCenter);
+	SD.Offense.DoAttackEnemy();
+	SD.Offense.TakeAllUnits(SD.Defense);
+
+	// Upgrade the defense group
+	SD.Defense.SetTargCount(mapPanther, mapLaser, 4);
+	SD.Defense.SetTargCount(mapPanther, mapRailGun, 7);
+	SD.Defense.SetTargCount(mapPanther, mapEMP, 5);
+}
+
+Export void AI_Attack5()
+{
+	// Setup attack group
+	SD.Offense.SetAttackType(mapCommandCenter);
+	SD.Offense.DoAttackEnemy();
+	SD.Offense.TakeAllUnits(SD.Defense);
+
+	// Upgrade the defense group
+	SD.Defense.SetTargCount(mapPanther, mapLaser, 4);
+	SD.Defense.SetTargCount(mapPanther, mapRailGun, 4);
+	SD.Defense.SetTargCount(mapPanther, mapThorsHammer, 3);
+	SD.Defense.SetTargCount(mapPanther, mapEMP, 4);
+}
+
+Export void AI_Attack6()
+{
+	// Setup attack group
+	SD.Offense.SetAttackType(mapCommandCenter);
+	SD.Offense.DoAttackEnemy();
+	SD.Offense.TakeAllUnits(SD.Defense);
+
+	// Upgrade the defense group
+	SD.Defense.SetTargCount(mapPanther, mapLaser, 4);
+	SD.Defense.SetTargCount(mapPanther, mapThorsHammer, 8);
+	SD.Defense.SetTargCount(mapPanther, mapEMP, 6);
+
+	SD.Trig_Attacks[7] = CreateTimeTrigger(1, 0, 6000, 8000, "AI_AttackEnd");
+}
+
+// This attack will repeat every 60-80 marks
+Export void AI_AttackEnd()
+{
+	// Setup attack group
+	SD.Offense.SetAttackType(mapCommandCenter);
+	SD.Offense.DoAttackEnemy();
+	SD.Offense.TakeAllUnits(SD.Defense);
+
+	// Upgrade the defense group
+	SD.Defense.SetTargCount(mapTiger, mapLaser, 3);
+	SD.Defense.SetTargCount(mapTiger, mapAcidCloud, 6 + TethysGame::GetRand(4));
+	SD.Defense.SetTargCount(mapTiger, mapThorsHammer, 10 + TethysGame::GetRand(4));
+	SD.Defense.SetTargCount(mapTiger, mapEMP, 8 + TethysGame::GetRand(3));
+
+	// Cheat
+	Player[1].SetOre(10000);
+	Player[1].SetRareOre(10000);
+}
+
 Export void AI_MoreTech1()
 {
+	Player[1].SetTechLevel(4);
+
+	// Setup rare ore stuff
+	SD.SF.RecordBuilding(LOCATION(118 + 31, 89 - 1), mapRareOreSmelter, mapNone, SD.Rare);
+	SD.VF[0].RecordBuilding(LOCATION(122 + 31, 92 - 1), mapRareOreMine, mapNone, SD.Rare);
+
+	// Tube stuff
+	SD.Earthworker.SetRect(MAP_RECT(116 + 31, 91 - 1, 122 + 31, 99 - 1));
+	for (int y = 98; y >= 91; y--)
+	{
+		SD.Earthworker.RecordTube(LOCATION(118 + 31, y - 1));
+	}
+
+	// Add rare mine area to defense zone
+	SD.Defense.AddGuardedRect(MAP_RECT(116 + 31, 79 - 1, 128 + 31, 95 - 1));
+	SD.Defense.AddGuardedRect(MAP_RECT(105 + 31, 81 - 1, 122 + 31, 92 - 1));
+}
+
+Export void AI_MoreTech2()
+{
 	Player[1].SetTechLevel(6);
+}
+
+Export void AI_MoreTech3()
+{
+	Player[1].SetTechLevel(9);
+}
+
+Export void AI_MoreTech4()
+{
+	Player[1].SetTechLevel(12);
+}
+
+Export void AI_RareOre1Ready()
+{
+	Unit NextUnit,
+		Smelter,
+		Mine;
+	GroupEnumerator rare1(SD.Rare);
+	while (rare1.GetNext(NextUnit))
+	{
+		if (NextUnit.GetType() == mapRareOreSmelter &&
+			NextUnit.IsLive() &&
+			!NextUnit.IsBusy())
+		{
+			Smelter = NextUnit;
+		}
+		else if (NextUnit.GetType() == mapRareOreMine &&
+			NextUnit.IsLive() &&
+			!NextUnit.IsBusy())
+		{
+			Mine = NextUnit;
+		}
+	}
+
+	if (Smelter.unitID != 0 && Mine.unitID != 0)
+	{
+		SD.Rare.Setup(Mine, Smelter, MAP_RECT(118 + 31, 89 - 1, 123 + 31, 93 - 1));
+		SD.Rare.SetTargCount(mapCargoTruck, mapNone, 2);
+		SD.VF[0].RecordVehReinforceGroup(SD.Rare, 6000);
+		SD.Trig_BuiltRareSmelter.Destroy();
+	}
 }
 
 // ------------------------------------------------------------------
@@ -527,7 +816,7 @@ Export void AIProc()
 	//
 }
 
-void __cdecl GetSaveRegions(struct BufferDesc &bufDesc)
+Export void __cdecl GetSaveRegions(struct BufferDesc &bufDesc)
 {
 	bufDesc.bufferStart = &SD;	// Pointer to a buffer that needs to be saved
 	bufDesc.length = sizeof(SD);			// sizeof(buffer)
