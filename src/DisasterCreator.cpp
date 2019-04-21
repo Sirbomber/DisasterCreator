@@ -7,34 +7,7 @@
 DisasterCreator::DisasterCreator()
 {
 	lastTick = TethysGame::Tick();
-	minWait = 0;
-
 	numPlayers = TethysGame::NoPlayers();
-
-	quakesEnabled = false;
-	stormsEnabled = false;
-	vortexEnabled = false;
-	meteorEnabled = false;
-
-	quakesWeight = 0;
-	stormsWeight = 0;
-	vortexWeight = 0;
-	meteorWeight = 0;
-	noneWeight = 0;
-
-	lowWeight = 0;
-	mediumWeight = 0;
-	highWeight = 0;
-	apocWeight = 0;
-
-	randWeight = 0;
-	zoneWeight = 0;
-	plyrWeight = 0;
-
-	ignoreMinTimeChance = 0;
-
-	numZonesDefined = 0;
-	numVolcanoesDefined = 0;
 }
 
 DisasterCreator::~DisasterCreator()
