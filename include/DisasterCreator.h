@@ -91,7 +91,7 @@ private:
 
 	// Data
 	int lastTick = 0;			  // Records the last time a disaster was successfully rolled for.
-	int	minWait = 0,			  // Minimum time (in ticks) to wait between disasters
+	int	minWait = 0;			  // Minimum time (in ticks) to wait between disasters
 	int	ignoreMinTimeChance = 0;  // Chance to ignore the minimum wait timer.
 
 	Trigger disCheck;		  // Pointer to callback trigger
