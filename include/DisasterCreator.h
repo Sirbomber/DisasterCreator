@@ -18,7 +18,8 @@
    - Finalized sample level.
 */
 
-#pragma once
+#ifndef DISASTERCREATOR
+#define DISASTERCREATOR
 
 #include <Outpost2DLL.h>
 #include <OP2Helper.h>
@@ -36,100 +37,102 @@ const int MAX_SIZE = 20;			// Maximum number of volcanoes/disaster zones a level
 
 class DisasterCreator
 {
-public:
-	DisasterCreator();
-	~DisasterCreator();
+	public:
+		DisasterCreator();
+		~DisasterCreator();
 
-	// Disaster invocation
-	void RollRandom();
-	void DoDisaster(disType type, disPower power, disTarget target);
+		// Disaster invocation
+		void RollRandom();
+		void DoDisaster(disType type, disPower power, disTarget target);
 
-	// Disaster Creator controls
-	void SetMapSize(int width, int height);											// Required.  Tell DC the map dimensions.
-	void SetMinimumWait(int wait);													// Set the minimum amount of time after a disaster the engine will wait before creating another one.
-	void SetNumPlayers(int numPl);													// Allows level creator to control which players can be targetted by disasters.  Useful for protecting AI players.
-	void EnableDisaster(disType type);												// Allows the specified disaster to happen.  At least one disaster must be enabled.
-	void DisableDisaster(disType type);												// The specified disaster will no longer happen.  Also sets spawn chance to zero.
-	void SetDisasterTypeWeight(disType type, int weight);							// Adjusts the chance of the specified disaster occurring.  At least one must be set.
-	void SetDisasterPowerWeight(disPower power, int weight);						// Adjusts the chance of disasters occuring with the specified power.  At least one must be set.
-	void SetDisasterTargetWeight(disTarget target, int weight);						// Adjusts the chance of disasters using the specified targetting type.  At least one must be set.
-	void SetIgnoreChance(int weight);												// Adjusts the chance of disasters ignoring the minimum wait time before spawning.
-	void AddDisasterZone(disType type, MAP_RECT zone);								// Defines a disaster spawn zone.
-	Trigger SetCallbackTrigger(char const *callback, int Delay);					// Creates a time trigger, using the specified delay and callback function.
-	Trigger SetCallbackTrigger(char const *callback, int minDelay, int maxDelay);	// Creates a time trigger, using the specified delay and callback function.
+		// Disaster Creator controls
+		void SetMapSize(int width, int height);											// Required.  Tell DC the map dimensions.
+		void SetMinimumWait(int wait);													// Set the minimum amount of time after a disaster the engine will wait before creating another one.
+		void SetNumPlayers(int numPl);													// Allows level creator to control which players can be targetted by disasters.  Useful for protecting AI players.
+		void EnableDisaster(disType type);												// Allows the specified disaster to happen.  At least one disaster must be enabled.
+		void DisableDisaster(disType type);												// The specified disaster will no longer happen.  Also sets spawn chance to zero.
+		void SetDisasterTypeWeight(disType type, int weight);							// Adjusts the chance of the specified disaster occurring.  At least one must be set.
+		void SetDisasterPowerWeight(disPower power, int weight);						// Adjusts the chance of disasters occuring with the specified power.  At least one must be set.
+		void SetDisasterTargetWeight(disTarget target, int weight);						// Adjusts the chance of disasters using the specified targetting type.  At least one must be set.
+		void SetIgnoreChance(int weight);												// Adjusts the chance of disasters ignoring the minimum wait time before spawning.
+		void AddDisasterZone(disType type, MAP_RECT zone);								// Defines a disaster spawn zone.
+		Trigger SetCallbackTrigger(char const *callback, int Delay);					// Creates a time trigger, using the specified delay and callback function.
+		Trigger SetCallbackTrigger(char const *callback, int minDelay, int maxDelay);	// Creates a time trigger, using the specified delay and callback function.
 
-	// Volcano controls
-	void CheckVolcanoes();
-	void DefineVolcano(LOCATION volcLoc, int lavaAnimTime, int eruptTime, disVolcanoDir dir, disSpeed speed);
-	void SetLavaTiles();
-	void SetLavaTiles(const vector<CellTypes>& optionalTypes);			// Sets all "black rock" tiles to lava-possible.  Optionally, a list of tile types to check for may also be passed.  If so, only black rock tiles that are also one of those tile types will be set as lava possible.
+		// Volcano controls
+		void CheckVolcanoes();
+		void DefineVolcano(LOCATION volcLoc, int lavaAnimTime, int eruptTime, disVolcanoDir dir, disSpeed speed);
+		void SetLavaTiles();
+		void SetLavaTiles(const vector<CellTypes>& optionalTypes);			// Sets all "black rock" tiles to lava-possible.  Optionally, a list of tile types to check for may also be passed.  If so, only black rock tiles that are also one of those tile types will be set as lava possible.
 
-private:
-	// Disaster creation functions
-	void DoQuake(disPower power, disTarget target);
-	void DoStorm(disPower power, disTarget target);
-	void DoVortex(disPower power, disTarget target);
-	void DoMeteor(disPower power, disTarget target);
+	private:
+		// Disaster creation functions
+        void DoQuake(disPower power, disTarget target);
+		void DoStorm(disPower power, disTarget target);
+		void DoVortex(disPower power, disTarget target);
+		void DoMeteor(disPower power, disTarget target);
 
-	// Volcano helper functions
-	void AnimateVolcano(Volcano *v);
-	void EruptVolcano(Volcano *v);
-	void StopVolcano(Volcano *v);
-	void EraseVolcano(int i);
-	int GetSpreadSpeed(disSpeed speed);
+		// Volcano helper functions
+		void AnimateVolcano(Volcano *v);
+		void EruptVolcano(Volcano *v);
+		void StopVolcano(Volcano *v);
+		void EraseVolcano(int i);
+		int GetSpreadSpeed(disSpeed speed);
 
-	// Disaster targetting
-	LOCATION GetDisasterTarget(disTarget trgType, disType type);
-	LOCATION TargetRandomLocation();
-	LOCATION TargetLocationInZone(disType type);
-	LOCATION TargetPlayer();
-	LOCATION GetVortexDestination(LOCATION source);
-	LOCATION GetStormDestination(LOCATION source);
-	LOCATION TargetWithinRadius(LOCATION target);
+		// Disaster targetting
+		LOCATION GetDisasterTarget(disTarget trgType, disType type);
+		LOCATION TargetRandomLocation();
+		LOCATION TargetLocationInZone(disType type);
+		LOCATION TargetPlayer();
+		LOCATION GetVortexDestination(LOCATION source);
+		LOCATION GetStormDestination(LOCATION source);
+		LOCATION TargetWithinRadius(LOCATION target);
 
-	int ApproxDistance(LOCATION s, LOCATION d);
+		int ApproxDistance(LOCATION s, LOCATION d);
 
-	// Data
-	int lastTick = 0;			  // Records the last time a disaster was successfully rolled for.
-	int	minWait = 0;			  // Minimum time (in ticks) to wait between disasters
-	int	ignoreMinTimeChance = 0;  // Chance to ignore the minimum wait timer.
+		// Data
+		int lastTick,			  // Records the last time a disaster was successfully rolled for.
+			minWait,			  // Minimum time (in ticks) to wait between disasters
+			ignoreMinTimeChance;  // Chance to ignore the minimum wait timer.
 
-	Trigger disCheck;		  // Pointer to callback trigger
+		Trigger disCheck;		  // Pointer to callback trigger
 
-	LOCATION mapSize;		  // Stores x/y size of map
-	int mapXOffset;			  // This will be either +31 (regular maps) or -1 (world maps)
+		LOCATION mapSize;		  // Stores x/y size of map
+		int mapXOffset;			  // This will be either +31 (regular maps) or -1 (world maps)
 
-	int numPlayers = 0;
+		int numPlayers;
 
-	// These let us control which disasters are allowed...
-	bool quakesEnabled = false;
-	bool stormsEnabled = false;
-	bool vortexEnabled = false;
-	bool meteorEnabled = false;
+		// These let us control which disasters are allowed...
+		bool quakesEnabled,
+			 stormsEnabled,
+			 vortexEnabled,
+			 meteorEnabled;
 
-	// ...and how often they get rolled.
-	int quakesWeight = 0;
-	int	stormsWeight = 0;
-	int	vortexWeight = 0;
-	int	meteorWeight = 0;
-	int	noneWeight = 0;
+		// ...and how often they get rolled.
+		int quakesWeight,
+			stormsWeight,
+			vortexWeight,
+			meteorWeight,
+			noneWeight;
 
-	// Weights for disaster power.
-	int lowWeight = 0;
-	int	mediumWeight = 0;
-	int	highWeight = 0;
-	int	apocWeight = 0;
+		// Weights for disaster power.
+		int lowWeight,
+			mediumWeight,
+			highWeight,
+			apocWeight;
 
-	// Weights for disaster targeting type.
-	int randWeight = 0;		// Chance to target a completely random point on the map.
-	int 	zoneWeight = 0;	// Chance to target one of the defined disaster zones.
-	int 	plyrWeight = 0;	// Chance to target a point near a player's base or units
+		// Weights for disaster targeting type.
+		int randWeight,		// Chance to target a completely random point on the map.
+			zoneWeight,		// Chance to target one of the defined disaster zones.
+			plyrWeight;		// Chance to target a point near a player's base or units
 
-	// Disaster zones
-	DisasterZone AllZones[MAX_SIZE];
-	int numZonesDefined = 0;
+		// Disaster zones
+		DisasterZone AllZones[MAX_SIZE];
+		int numZonesDefined;
 
-	// Defined volcanoes
-	Volcano AllVolcanoes[MAX_SIZE];
-	int numVolcanoesDefined = 0;
+		// Defined volcanoes
+		Volcano AllVolcanoes[MAX_SIZE];
+		int numVolcanoesDefined;
 };
+
+#endif

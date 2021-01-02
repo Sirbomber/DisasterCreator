@@ -1,4 +1,5 @@
-#pragma once
+#ifndef DC_STRUCTS
+#define DC_STRUCTS
 
 #include <Outpost2DLL.h>
 
@@ -13,10 +14,12 @@ struct DisasterZone
 struct Volcano
 {
 	LOCATION eruptAt;		  // Location for the eruption to occur
-	int warnTime = 0;			  // Tick that the volcano eruption should start playing.
-	int	eruptTime = 0;			  // Time of first warning (erupts 10 marks later)
-	bool animStarted = false;		  // Set once the lava flow animation on the volcano has started playing.
-	bool eruptionSet = false;		  // Set once TethysGame::SetEruption has been called.
-	disVolcanoDir direction = disVolcanoDir::volNone;
-	disSpeed speed = disSpeed::spdStopped;
+	int warnTime,			  // Tick that the volcano eruption should start playing.
+		eruptTime;			  // Time of first warning (erupts 10 marks later)
+	bool animStarted,		  // Set once the lava flow animation on the volcano has started playing.
+		 eruptionSet;		  // Set once TethysGame::SetEruption has been called.
+	disVolcanoDir direction;
+	disSpeed speed;
 };
+
+#endif

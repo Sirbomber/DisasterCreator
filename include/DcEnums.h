@@ -1,9 +1,10 @@
-#pramga once
+#ifndef DC_ENUMS
+#define DC_ENUMS
 
 // Disaster type enum
 enum disType
 {
-	disQuake,
+	disQuake = 0,
 	disStorm,
 	disVortex,
 	disMeteor,
@@ -13,7 +14,7 @@ enum disType
 // Relative disaster power enum
 enum disPower
 {
-	pwrLow,
+	pwrLow = 0,
 	pwrMedium,
 	pwrHigh,
 	pwrApocalyptic
@@ -22,7 +23,7 @@ enum disPower
 // Disaster targeting method enum
 enum disTarget
 {
-	trgRandom,
+	trgRandom = 0,
 	trgZone,
 	trgPlayer
 };
@@ -31,7 +32,7 @@ enum disTarget
 // Look at the volcano in the top right corner of Plymouth Starship 1 if you don't know what I'm talking about.
 enum disVolcanoDir
 {
-	volSouth,
+	volSouth = 0,
 	volSouthEast,
 	volSouthWest,
 	volNone				// Use this if you don't want to play the volcano animation, for whatever reason.
@@ -40,9 +41,11 @@ enum disVolcanoDir
 // Lava spread speed enum.
 enum disSpeed
 {
-	spdStopped,
+	spdStopped = 0,
 	spdSlow,
 	spdMedium,
 	spdFast,
 	spdInstant
 };
+
+#endif

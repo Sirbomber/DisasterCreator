@@ -36,6 +36,8 @@ void DisasterCreator::DefineVolcano(LOCATION volcLoc, int lavaAnimTime, int erup
 	GameMap::SetLavaPossible(LOCATION(volcLoc.x, volcLoc.y), 1);
 	GameMap::SetLavaPossible(LOCATION(volcLoc.x, volcLoc.y+1), 1);
 	GameMap::SetLavaPossible(LOCATION(volcLoc.x, volcLoc.y+2), 1);
+	GameMap::SetLavaPossible(LOCATION(volcLoc.x, volcLoc.y+3), 1);
+	GameMap::SetLavaPossible(LOCATION(volcLoc.x, volcLoc.y+4), 1);
 }
 
 void DisasterCreator::CheckVolcanoes()
@@ -63,7 +65,7 @@ void DisasterCreator::CheckVolcanoes()
 		// Check if we should stop the animation.
 		// Once we do that, we don't care about this volcano anymore, so we can remove it from the list.
 		else if (!AllVolcanoes[i].eruptionSet &&
-			TethysGame::Tick() >= AllVolcanoes[i].eruptTime + 1000)
+			TethysGame::Tick() >= AllVolcanoes[i].eruptTime + 980)
 		{
 			StopVolcano(&AllVolcanoes[i]);
 			EraseVolcano(i);
