@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <Outpost2DLL.h>
-#include <DisasterCreator.h>
+#include <OP2Helper.h>
+#include <DisasterCreator\DisasterCreator.h>
 #include <Patches.h>
 
 #include "MissionEnd.h"
@@ -29,8 +30,8 @@ struct SaveData
 {
 	// DisasterCreator and associated triggers
 	DisasterCreator DC;
-	Trigger DC_Callback,
-		    DC_Timer1,
+	Tethys::TethysAPI::Trigger DC_Callback;
+	Trigger DC_Timer1,
 		    DC_Timer2;
 
 	// Victory/Defeat conditions
@@ -88,32 +89,30 @@ Export int InitProc()
 	GameMap::SetInitialLightLevel(32);
 
 	// DisasterCreator configuration.
-	SD.DC.SetMapSize(128, 128);
 	SD.DC.SetMinimumWait(3700);						// Define the minimum time, after a disaster has occurred, to wait before spawning another disaster.
 	SD.DC.SetIgnoreChance(2);						// Define a chance, between 0 and 100 (inclusive), for the engine to ignore the minimum wait time when trying to spawn a disaster.  In this case, we have a 2% chance.
-	SD.DC.SetNumPlayers(TethysGame::NoPlayers());	// Since the DC object is stored in the savedata struct, it gets initialized before OP2 sets the number of players.
 	
 	// Tell the engine which disasters you want to allow...
-	SD.DC.EnableDisaster(disQuake);					// Allow quakes to happen.
-	SD.DC.EnableDisaster(disMeteor);				// Allow meteors to happen.
+	SD.DC.EnableDisaster(DisasterType::Quake);					// Allow quakes to happen.
+	SD.DC.EnableDisaster(DisasterType::Meteor);				// Allow meteors to happen.
 
 	// ...how likely they should be to happen...
-	SD.DC.SetDisasterTypeWeight(disQuake, 15);		// 15% chance of a quake
-	SD.DC.SetDisasterTypeWeight(disMeteor, 80);		// 80% chance of a meteor
-	SD.DC.SetDisasterTypeWeight(disNone, 5);        // 5% chance nothing happens (note: these don't have to add up to 100%; they do here for convenience)
+	SD.DC.SetDisasterTypeWeight(DisasterType::Quake, 15);		// 15% chance of a quake
+	SD.DC.SetDisasterTypeWeight(DisasterType::Meteor, 80);		// 80% chance of a meteor
+	SD.DC.SetDisasterTypeWeight(DisasterType::None, 5);        // 5% chance nothing happens (note: these don't have to add up to 100%; they do here for convenience)
 
 	// ...the power the disasters should have...
-	SD.DC.SetDisasterPowerWeight(pwrLow, 80);		    // 80% chance of a light quake or minor meteor
-	SD.DC.SetDisasterPowerWeight(pwrMedium, 15);	    // 15% chance of something a little more substantial
-	SD.DC.SetDisasterPowerWeight(pwrHigh, 4);		    // 4% chance of something dangerous
-	SD.DC.SetDisasterPowerWeight(pwrApocalyptic, 1);    // 1% chance of something really bad
+	SD.DC.SetDisasterPowerWeight(DisasterPower::Low, 80);		    // 80% chance of a light quake or minor meteor
+	SD.DC.SetDisasterPowerWeight(DisasterPower::Medium, 15);	    // 15% chance of something a little more substantial
+	SD.DC.SetDisasterPowerWeight(DisasterPower::High, 4);		    // 4% chance of something dangerous
+	SD.DC.SetDisasterPowerWeight(DisasterPower::Apocalyptic, 1);    // 1% chance of something really bad
 
 	// ...and where you'd like them, roughly, to appear.
-	SD.DC.SetDisasterTargetWeight(trgZone, 100);		// 100% chance of disasters only happening in designated zones.
+	SD.DC.SetDisasterTargetWeight(DisasterTarget::Zone, 100);		// 100% chance of disasters only happening in designated zones.
 													    // Note that if a disaster has no zone defined, it can spawn anywhere on the map.
 
 	// Add a disaster zone for quakes.  Since we don't add one for meteors, they can spawn anywhere.
-	SD.DC.AddDisasterZone(disQuake, MAP_RECT(17 + 31, 78 - 1, 86 + 31, 110 - 1));
+	SD.DC.AddDisasterZone(DisasterType::Quake, Tethys::MapRect(17 + 31, 78 - 1, 86 + 31, 110 - 1));
 
 	// Just for kicks: let's add a volcano.
 	// The arguments are:
@@ -122,11 +121,11 @@ Export int InitProc()
 	//  3: Tick the first "volcano watch initiated" warning should play.  Volcano will erupt 100 ticks (10 marks) later.
 	//  4: Which volcano animation to play.  Choices are volSouthWest, volSouthEast, volSouth, and volNone.
 	//  5: Roughly how fast you'd like the lava to flow.
-	SD.DC.DefineVolcano(LOCATION(113 + 31, 13 - 1), 66600, 72000, volSouthWest, spdFast);
+	SD.DC.DefineVolcano(Tethys::Location(113 + 31, 13 - 1), 66600, 72000, VolcanoDirection::SouthWest, BlightLavaSpeed::Medium);
 
 	// By default, this function will set all "black rock" tile to lava-possible.  You can optionally pass in a list of
 	// celltypes; if you do only black rock tiles of those celltypes will be lava-possible.
-	SD.DC.SetLavaTiles({ cellSlowPassible1 });
+	SD.DC.SetLavaTiles({ Tethys::CellType::SlowPassible1 });
 	
 	// Finally, define our callback trigger.  This should be a time trigger that will fire somewhat regularly,
 	// to allow the engine to invoke disasters.
@@ -150,47 +149,47 @@ Export void DisasterCreator_Callback()
 Export void StrongerDisasters()
 {
 	// Enable the good stuff.
-	SD.DC.EnableDisaster(disStorm);
-	SD.DC.EnableDisaster(disVortex);
+	SD.DC.EnableDisaster(DisasterType::Storm);
+	SD.DC.EnableDisaster(DisasterType::Vortex);
 
 	// Adjust weights for each disaster
-	SD.DC.SetDisasterTypeWeight(disQuake, 35);			// 35% chance of a quake
-	SD.DC.SetDisasterTypeWeight(disStorm, 30);			// 30% chance of a storm
-	SD.DC.SetDisasterTypeWeight(disMeteor, 20);		// 20% chance of a meteor
-	SD.DC.SetDisasterTypeWeight(disVortex, 10);		// 10% chance of a vortex
-	SD.DC.SetDisasterTypeWeight(disNone, 5);			// 5% chance of nothing
+	SD.DC.SetDisasterTypeWeight(DisasterType::Quake, 35);			// 35% chance of a quake
+	SD.DC.SetDisasterTypeWeight(DisasterType::Storm, 30);			// 30% chance of a storm
+	SD.DC.SetDisasterTypeWeight(DisasterType::Meteor, 20);		// 20% chance of a meteor
+	SD.DC.SetDisasterTypeWeight(DisasterType::Vortex, 10);		// 10% chance of a vortex
+	SD.DC.SetDisasterTypeWeight(DisasterType::None, 5);			// 5% chance of nothing
 
 	// Also adjust power weights.
-	SD.DC.SetDisasterPowerWeight(pwrLow, 30);		    // 30% chance
-	SD.DC.SetDisasterPowerWeight(pwrMedium, 55);	    // 55% chance
-	SD.DC.SetDisasterPowerWeight(pwrHigh, 10);		    // 10% chance
-	SD.DC.SetDisasterPowerWeight(pwrApocalyptic, 5);   // 5% chance
+	SD.DC.SetDisasterPowerWeight(DisasterPower::Low, 30);		    // 30% chance
+	SD.DC.SetDisasterPowerWeight(DisasterPower::Medium, 55);	    // 55% chance
+	SD.DC.SetDisasterPowerWeight(DisasterPower::High, 10);		    // 10% chance
+	SD.DC.SetDisasterPowerWeight(DisasterPower::Apocalyptic, 5);   // 5% chance
 
 	// We're going to take the quakes off the leash, and also add a new source of fun: player-seeking disasters
-	SD.DC.SetDisasterTargetWeight(trgZone, 0);
-	SD.DC.SetDisasterTargetWeight(trgRandom, 60);
-	SD.DC.SetDisasterTargetWeight(trgPlayer, 40);
+	SD.DC.SetDisasterTargetWeight(DisasterTarget::Zone, 0);
+	SD.DC.SetDisasterTargetWeight(DisasterTarget::Random, 60);
+	SD.DC.SetDisasterTargetWeight(DisasterTarget::Player, 40);
 }
 
 Export void StrongestDisasters()
 {
 	// Adjust weights for each disaster
-	SD.DC.SetDisasterTypeWeight(disQuake, 30);			// 30% chance of a quake
-	SD.DC.SetDisasterTypeWeight(disStorm, 30);			// 30% chance of a storm
-	SD.DC.SetDisasterTypeWeight(disMeteor, 15);		// 15% chance of a meteor
-	SD.DC.SetDisasterTypeWeight(disVortex, 20);		// 20% chance of a vortex
-	SD.DC.SetDisasterTypeWeight(disNone, 5);			// 5% chance of nothing
+	SD.DC.SetDisasterTypeWeight(DisasterType::Quake, 30);			// 30% chance of a quake
+	SD.DC.SetDisasterTypeWeight(DisasterType::Storm, 30);			// 30% chance of a storm
+	SD.DC.SetDisasterTypeWeight(DisasterType::Meteor, 15);		// 15% chance of a meteor
+	SD.DC.SetDisasterTypeWeight(DisasterType::Vortex, 20);		// 20% chance of a vortex
+	SD.DC.SetDisasterTypeWeight(DisasterType::None, 5);			// 5% chance of nothing
 
 	// Also adjust power weights.
-	SD.DC.SetDisasterPowerWeight(pwrLow, 20);		    // 20% chance
-	SD.DC.SetDisasterPowerWeight(pwrMedium, 50);	    // 50% chance
-	SD.DC.SetDisasterPowerWeight(pwrHigh, 20);		    // 20% chance
-	SD.DC.SetDisasterPowerWeight(pwrApocalyptic, 10);  // 10% chance
+	SD.DC.SetDisasterPowerWeight(DisasterPower::Low, 20);		    // 20% chance
+	SD.DC.SetDisasterPowerWeight(DisasterPower::Medium, 50);	    // 50% chance
+	SD.DC.SetDisasterPowerWeight(DisasterPower::High, 20);		    // 20% chance
+	SD.DC.SetDisasterPowerWeight(DisasterPower::Apocalyptic, 10);  // 10% chance
 
-	// Increase the likelihood of targetting a player, and trick the engine into ignoring the AI player.
-	SD.DC.SetDisasterTargetWeight(trgRandom, 30);
-	SD.DC.SetDisasterTargetWeight(trgPlayer, 70);
-	SD.DC.SetNumPlayers(1);
+	// Increase the likelihood of targetting a player, while ignoring the AI player.
+	SD.DC.SetDisasterTargetWeight(DisasterTarget::Random, 30);
+	SD.DC.SetDisasterTargetWeight(DisasterTarget::Player, 70);
+	SD.DC.SetIgnorePlayer(1, true);
 }
 
 // ------------------------------------------------------------------

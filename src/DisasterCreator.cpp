@@ -1,15 +1,16 @@
 #include "DisasterCreator.h"
 
+using namespace Tethys;
+using namespace Tethys::TethysAPI;
+
 /*
    Constructor/Destructor + basic disaster creation functions.
 */
 
 DisasterCreator::DisasterCreator()
 {
-	lastTick = TethysGame::Tick();
+	lastTick = Game::Tick();
 	minWait = 0;
-
-	numPlayers = TethysGame::NoPlayers();
 
 	quakesEnabled = false;
 	stormsEnabled = false;
@@ -35,11 +36,22 @@ DisasterCreator::DisasterCreator()
 
 	numZonesDefined = 0;
 	numVolcanoesDefined = 0;
+	lastLavaSpeed = 0;
+
+	for (int i = 0; i < 7; i++)
+	{
+		if (Player[i].IsHuman())
+		{
+			ignorePlayer[i] = false;
+		}
+	}
+
+	numQueuedDisastersDefined = 0;
 }
 
 DisasterCreator::~DisasterCreator()
 {
-	if (disCheck.IsInitialized())
+	if (disCheck.GetID() != 255)
 	{
 		disCheck.Destroy();
 	}
@@ -54,229 +66,531 @@ void DisasterCreator::RollRandom()
 		quakesWeight + stormsWeight + vortexWeight + meteorWeight + noneWeight == 0 ||
 		randWeight + zoneWeight + plyrWeight == 0)
 	{
-		TethysGame::AddMessage(-1, -1, "DC Error: No weights defined!", -1, sndDirt);
+		Game::AddMessage("DC Error: No weights defined!", Tethys::SoundID::Dirt);
 		return;
 	}
 
 	// Get a random number from 0 to (total power weights)
-	disPower power = pwrLow;
-	int rv = TethysGame::GetRand(lowWeight + mediumWeight + highWeight + apocWeight + 1);
+	DisasterPower power = DisasterPower::Low;
+	int rv = Game::GetRand(lowWeight + mediumWeight + highWeight + apocWeight + 1);
 	if (rv < lowWeight)
 	{
-		power = pwrLow;
+		power = DisasterPower::Low;
 	}
 	else if (rv < lowWeight + mediumWeight)
 	{
-		power = pwrMedium;
+		power = DisasterPower::Medium;
 	}
 	else if (rv < lowWeight + mediumWeight + highWeight)
 	{
-		power = pwrHigh;
+		power = DisasterPower::High;
 	}
 	else if (rv < lowWeight + mediumWeight + highWeight + apocWeight)
 	{
-		power = pwrApocalyptic;
+		power = DisasterPower::Apocalyptic;
 	}
 	// else should never happen, but it will default to low power anyways
 
 	// Get a random number from 0 to (total disaster targeting type weights)
-	disTarget target = trgRandom;
-	rv = TethysGame::GetRand(randWeight + zoneWeight + plyrWeight + 1);
+	DisasterTarget target = DisasterTarget::Random;
+	rv = Game::GetRand(randWeight + zoneWeight + plyrWeight + 1);
 	if (rv < randWeight)
 	{
-		target = trgRandom;
+		target = DisasterTarget::Random;
 	}
 	else if (rv < randWeight + zoneWeight)
 	{
-		target = trgZone;
+		target = DisasterTarget::Zone;
 	}
 	else if (rv < randWeight + zoneWeight + plyrWeight)
 	{
-		target = trgPlayer;
+		target = DisasterTarget::Player;
 	}
-	// else should never happen, but it will default to random targetting anyways
+	// else should never happen, but it will default to random targeting anyways
 
 	// Get a random number from 0 to (total disaster weights)
-	rv = TethysGame::GetRand(quakesWeight + stormsWeight + vortexWeight + meteorWeight + noneWeight + 1);
+	rv = Game::GetRand(quakesWeight + stormsWeight + vortexWeight + meteorWeight + noneWeight + 1);
 	if (rv < quakesWeight)
 	{
-		DoDisaster(disQuake, power, target);
+		DoDisaster(DisasterType::Quake, power, target);
 	}
 	else if (rv < quakesWeight + stormsWeight)
 	{
-		DoDisaster(disStorm, power, target);
+		DoDisaster(DisasterType::Storm, power, target);
 	}
 	else if (rv < quakesWeight + stormsWeight + vortexWeight)
 	{
-		DoDisaster(disVortex, power, target);
+		DoDisaster(DisasterType::Vortex, power, target);
 	}
 	else if (rv < quakesWeight + stormsWeight + vortexWeight + meteorWeight)
 	{
-		DoDisaster(disMeteor, power, target);
+		DoDisaster(DisasterType::Meteor, power, target);
 	}
 	// else nothing
 }
 
-void DisasterCreator::DoDisaster(disType type, disPower power, disTarget target)
+void DisasterCreator::DoDisaster(DisasterType type, DisasterPower power, DisasterTarget target, bool force, bool instant)
 {
 	// Check if the minimum time between disasters has elapsed.
-	if ((TethysGame::Tick() - lastTick < minWait) &&
-		(TethysGame::GetRand(101) >= ignoreMinTimeChance))
+	if (!force &&
+		(Game::Tick() - lastTick < minWait) &&
+		(Game::GetRand(101) >= ignoreMinTimeChance))
 	{
 		return;
 	}
 
 	// Update last disaster time (even if we roll no disaster - consider it a reprieve!)
-	lastTick = TethysGame::Tick();
+	lastTick = Game::Tick();
 
 	// Invoke the appropriate disaster.
 	switch (type)
 	{
-		case disQuake:
+		case DisasterType::Quake:
 			if (quakesEnabled)
 			{
-				DoQuake(power, target);
+				DoQuake(power, target, instant);
 			}
 			break;
-		case disStorm:
+		case DisasterType::Storm:
 			if (stormsEnabled)
 			{
-				DoStorm(power, target);
+				DoStorm(power, target, instant);
 			}
 			break;
-		case disVortex:
+		case DisasterType::Vortex:
 			if (vortexEnabled)
 			{
-				DoVortex(power, target);
+				DoVortex(power, target, instant);
 			}
 			break;
-		case disMeteor:
+		case DisasterType::Meteor:
 			if (meteorEnabled)
 			{
-				DoMeteor(power, target);
+				DoMeteor(power, target, instant);
 			}
 			break;
-		case disNone:
+		case DisasterType::None:
 			// Lucky you!
 			break;
 		default:
-			TethysGame::AddMessage(-1, -1, "DC Error: Unknown disaster type invoked!", -1, sndDirt);
+			Game::AddMessage("DC Error: Unknown disaster type invoked!", Tethys::SoundID::Dirt);
 			break;
 	}
+}
+
+void DisasterCreator::DoDisasterAt(DisasterType type, DisasterPower power, Tethys::Location target, Tethys::Location stormVortexEndPt, bool force, bool instant)
+{
+	// Check if the minimum time between disasters has elapsed.
+	if (!force &&
+		(Game::Tick() - lastTick < minWait) &&
+		(Game::GetRand(101) >= ignoreMinTimeChance))
+	{
+		return;
+	}
+
+	// Update last disaster time (even if we roll no disaster - consider it a reprieve!)
+	lastTick = Game::Tick();
+
+	// Invoke the appropriate disaster.
+	switch (type)
+	{
+	case DisasterType::Quake:
+		if (quakesEnabled || force)
+		{
+			DoQuake(power, DisasterTarget::Location, instant, target);
+		}
+		break;
+	case DisasterType::Storm:
+		if (stormsEnabled || force)
+		{
+			DoStorm(power, DisasterTarget::Location, instant, target, stormVortexEndPt);
+		}
+		break;
+	case DisasterType::Vortex:
+		if (vortexEnabled || force)
+		{
+			DoVortex(power, DisasterTarget::Location, instant, target, stormVortexEndPt);
+		}
+		break;
+	case DisasterType::Meteor:
+		if (meteorEnabled || force)
+		{
+			DoMeteor(power, DisasterTarget::Location, instant, target);
+		}
+		break;
+	case DisasterType::None:
+		// Lucky you!
+		break;
+	default:
+		Game::AddMessage("DC Error: Unknown disaster type invoked!", Tethys::SoundID::Dirt);
+		break;
+	}
+}
+
+void DisasterCreator::QueueDisaster(DisasterType type, DisasterPower power, DisasterTarget target, Tethys::Location at, Tethys::Location stormVortexEndPt, int tick, bool instant)
+{
+	// Limit check.
+	if (numQueuedDisastersDefined >= MAX_SIZE)
+	{
+		Game::AddMessage("DC Error: Too many queued disasters!", SoundID::Dirt);
+		return;
+	}
+
+	// Silently discard a queued type of none
+	if (type == DisasterType::None)
+	{
+		return;
+	}
+
+	AllQueuedDisasters[numQueuedDisastersDefined].type = type;
+	AllQueuedDisasters[numQueuedDisastersDefined].power = power;
+	AllQueuedDisasters[numQueuedDisastersDefined].target = target;
+	AllQueuedDisasters[numQueuedDisastersDefined].startAt = at;
+	AllQueuedDisasters[numQueuedDisastersDefined].endAt = stormVortexEndPt;
+	AllQueuedDisasters[numQueuedDisastersDefined].triggerTime = tick;
+	AllQueuedDisasters[numQueuedDisastersDefined].instant = instant;
+
+	// Increment queue count
+	numQueuedDisastersDefined++;
+}
+
+void DisasterCreator::CheckQueuedDisasters()
+{
+	// Iterate through the list of queued disasters.
+	QueuedDisaster* q;
+	int i = 0;
+	while (i < numQueuedDisastersDefined)
+	{
+		// Check if the trigger time has passed.
+		if (Game::Tick() >= AllQueuedDisasters[i].triggerTime)
+		{
+			// Trigger the disaster
+			q = &AllQueuedDisasters[i];
+			if (q->target == DisasterTarget::Location)
+			{
+				DoDisasterAt(q->type, q->power, q->startAt, q->endAt, true, q->instant);
+			}
+			else
+			{
+				DoDisaster(q->type, q->power, q->target, true, q->instant);
+			}
+
+			// Erase this disaster from the list
+			EraseQueuedDisaster(i);
+		}
+		else
+		{
+			i++;
+		}
+	}
+}
+
+void DisasterCreator::EraseQueuedDisaster(int i)
+{
+	// Push every volcano further down the array up one slot.
+	for (i; i < numQueuedDisastersDefined - 1; i++)
+	{
+		AllQueuedDisasters[i] = AllQueuedDisasters[i + 1];
+	}
+
+	numQueuedDisastersDefined--;
 }
 
 // ----------------------------------------------
 
-void DisasterCreator::DoQuake(disPower power, disTarget target)
+void DisasterCreator::DoQuake(DisasterPower power, DisasterTarget target, bool instant, Tethys::Location at)
 {
 	// Translate the arbitrary power level into something that makes sense for this disaster
 	int actualPower = 1;
 	switch (power)
 	{
-		case pwrLow:
+		case DisasterPower::Low:
 			// Low power quake: magnitude 1 or 2
-			actualPower = TethysGame::GetRand(2) + 1;
+			actualPower = Game::GetRand(2) + 1;
 			break;
-		case pwrMedium:
+		case DisasterPower::Medium:
 			// Medium power quake: magnitude 1 - 4
-			actualPower = TethysGame::GetRand(4) + 1;
+			actualPower = Game::GetRand(4) + 1;
 			break;
-		case pwrHigh:
+		case DisasterPower::High:
 			// High power quake: magnitude 3 - 7
-			actualPower = TethysGame::GetRand(5) + 3;
+			actualPower = Game::GetRand(5) + 3;
 			break;
-		case pwrApocalyptic:
+		case DisasterPower::Apocalyptic:
 			// Apocalyptic power quake: magnitude 6 - 10
-			actualPower = TethysGame::GetRand(5) + 6;
+			actualPower = Game::GetRand(5) + 6;
 			break;
 	}
-
-	LOCATION targetLoc = GetDisasterTarget(target, disQuake);
-	TethysGame::SetEarthquake(targetLoc.x, targetLoc.y, actualPower);
+	
+	Location targetLoc;
+	if (target == DisasterTarget::Location && at.x != -1 && at.y != -1)
+	{
+		targetLoc = at;
+	}
+	else
+	{
+		targetLoc = GetDisasterTarget(target, DisasterType::Quake);
+	}
+	Game::CreateEarthquake(targetLoc, actualPower, instant);
 }
 
-void DisasterCreator::DoStorm(disPower power, disTarget target)
+void DisasterCreator::DoStorm(DisasterPower power, DisasterTarget target, bool instant, Tethys::Location start, Tethys::Location end)
 {
 	// Translate the arbitrary power level into something that makes sense for this disaster
 	int actualPower = 1;
 	switch (power)
 	{
-		case pwrLow:
+		case DisasterPower::Low:
 			// Low power storm: power 3 - 8
-			actualPower = TethysGame::GetRand(6) + 3;
+			actualPower = Game::GetRand(6) + 3;
 			break;
-		case pwrMedium:
+		case DisasterPower::Medium:
 			// Medium power storm: power 9 - 14
-			actualPower = TethysGame::GetRand(6) + 9;
+			actualPower = Game::GetRand(6) + 9;
 			break;
-		case pwrHigh:
+		case DisasterPower::High:
 			// High power storm: power 17 - 27
-			actualPower = TethysGame::GetRand(11) + 17;
+			actualPower = Game::GetRand(11) + 17;
 			break;
-		case pwrApocalyptic:
+		case DisasterPower::Apocalyptic:
 			// Apocalyptic power storm: power 30 - 60
-			actualPower = TethysGame::GetRand(31) + 30;
+			actualPower = Game::GetRand(31) + 30;
 			break;
 	}
 
-	LOCATION targetLoc = GetDisasterTarget(target, disStorm);
-	LOCATION destination = GetStormDestination(targetLoc);
-	TethysGame::SetLightning(targetLoc.x, targetLoc.y, actualPower, destination.x, destination.y);
+	Location targetLoc;
+	Location destination;
+	if (target == DisasterTarget::Location && start.x != -1 && start.y != -1 && end.x != -1 && end.y != -1)
+	{
+		targetLoc = start;
+		destination = end;
+	}
+	else
+	{
+		targetLoc = GetDisasterTarget(target, DisasterType::Storm);
+		destination = GetStormDestination(targetLoc);
+	}
+
+	Game::CreateLightning(targetLoc, destination, actualPower, instant);
 }
 
-void DisasterCreator::DoVortex(disPower power, disTarget target)
+void DisasterCreator::DoVortex(DisasterPower power, DisasterTarget target, bool instant, Tethys::Location start, Tethys::Location end)
 {
 	// Translate the arbitrary power level into something that makes sense for this disaster
 	int actualPower = 1;
 	switch (power)
 	{
-		case pwrLow:
+		case DisasterPower::Low:
 			// Low power vortex: duration 6 - 9
-			actualPower = TethysGame::GetRand(4) + 6;
+			actualPower = Game::GetRand(4) + 6;
 			break;
-		case pwrMedium:
+		case DisasterPower::Medium:
 			// Medium power vortex: duration 7 - 12
-			actualPower = TethysGame::GetRand(6) + 7;
+			actualPower = Game::GetRand(6) + 7;
 			break;
-		case pwrHigh:
+		case DisasterPower::High:
 			// High power vortex: duration 14 - 22
-			actualPower = TethysGame::GetRand(9) + 14;
+			actualPower = Game::GetRand(9) + 14;
 			break;
-		case pwrApocalyptic:
+		case DisasterPower::Apocalyptic:
 			// Apocalyptic power vortex: duration 25 - 35
-			actualPower = TethysGame::GetRand(11) + 25;
+			actualPower = Game::GetRand(11) + 25;
 			break;
 	}
 
-	LOCATION targetLoc = GetDisasterTarget(target, disVortex);
-	LOCATION destination = GetVortexDestination(targetLoc);
-	TethysGame::SetTornado(targetLoc.x, targetLoc.y, actualPower, destination.x, destination.y, false);
+	Location targetLoc;
+	Location destination;
+	if (target == DisasterTarget::Location && start.x != -1 && start.y != -1 && end.x != -1 && end.y != -1)
+	{
+		targetLoc = start;
+		destination = end;
+	}
+	else
+	{
+		targetLoc = GetDisasterTarget(target, DisasterType::Vortex);
+		destination = GetVortexDestination(targetLoc);
+	}
+	Game::CreateTornado(targetLoc, destination, actualPower, instant);
 }
 
-void DisasterCreator::DoMeteor(disPower power, disTarget target)
+void DisasterCreator::DoMeteor(DisasterPower power, DisasterTarget target, bool instant, Tethys::Location at)
 {
 	// Translate the arbitrary power level into something that makes sense for this disaster
 	int actualPower = 1;
 	switch (power)
 	{
-		case pwrLow:
+		case DisasterPower::Low:
 			// Low power meteor: size 1
 			actualPower = 1;
 			break;
-		case pwrMedium:
+		case DisasterPower::Medium:
 			// Medium power meteor: size 1 or 2;
-			actualPower = TethysGame::GetRand(2) + 1;
+			actualPower = Game::GetRand(2) + 1;
 			break;
-		case pwrHigh:
+		case DisasterPower::High:
 			// High power meteor: size 2-4
-			actualPower = TethysGame::GetRand(3) + 2;
+			actualPower = Game::GetRand(3) + 2;
 			break;
-		case pwrApocalyptic:
+		case DisasterPower::Apocalyptic:
 			// Apocalyptic power meteor: Screw it, size 10
 			actualPower = 10;
 			break;
 	}
 
-	LOCATION targetLoc = GetDisasterTarget(target, disMeteor);
-	TethysGame::SetMeteor(targetLoc.x, targetLoc.y, actualPower);
+	Location targetLoc;
+	if (target == DisasterTarget::Location && at.x != -1 && at.y != -1)
+	{
+		targetLoc = at;
+	}
+	else
+	{
+		targetLoc = GetDisasterTarget(target, DisasterType::Meteor);
+	}
+	Game::CreateMeteor(targetLoc, (MeteorSize)actualPower, instant);
+}
+
+void DisasterCreator::SetBlight(Location spawnAt, BlightShape shape, int size, BlightLavaSpeed speed, bool infect, bool noWarning)
+{
+	// Sanity checks.
+	if (size < 1)
+	{
+		Game::AddMessage("DC Error: Invalid Blight spawn size!", Tethys::SoundID::Dirt);
+	}
+	else if (speed < BlightLavaSpeed::Stopped || speed > BlightLavaSpeed::Instant)
+	{
+		Game::AddMessage("DC Error: Invalid Blight spread speed!", Tethys::SoundID::Dirt);
+	}
+
+	else
+	{
+		int startX, startY;
+		switch (shape)
+		{
+		case BlightShape::Square:
+			startX = spawnAt.x - (size / 2);
+			startY = spawnAt.y - (size / 2);
+			for (int x = startX; x <= spawnAt.x + ((size / 2) - (size % 2)); x++)
+			{
+				for (int y = startY; y <= spawnAt.y + ((size / 2) - (size % 2)); y++)
+				{
+					Game::CreateBlight(Location(x, y));
+				}
+			}
+			break;
+		case BlightShape::Diamond:
+			for (int y = spawnAt.y - size;
+				y <= spawnAt.y + size;
+				y++)
+			{
+				for (int x = spawnAt.x - (size - abs(y - spawnAt.y));
+					x <= spawnAt.x + (size - abs(y - spawnAt.y));
+					x++)
+				{
+					Game::CreateBlight(Location(x, y));
+				}
+			}
+			break;
+		case BlightShape::TriangleUp:
+			for (int y = spawnAt.y - size;
+				y <= spawnAt.y;
+				y++)
+			{
+				for (int x = spawnAt.x - (size - abs(y - spawnAt.y));
+					x <= spawnAt.x + (size - abs(y - spawnAt.y));
+					x++)
+				{
+					Game::CreateBlight(Location(x, y));
+				}
+			}
+			break;
+		case BlightShape::TriangleDown:
+			for (int y = spawnAt.y;
+				y <= spawnAt.y + size;
+				y++)
+			{
+				for (int x = spawnAt.x - (size - abs(y - spawnAt.y));
+					x <= spawnAt.x + (size - abs(y - spawnAt.y));
+					x++)
+				{
+					Game::CreateBlight(Location(x, y));
+				}
+			}
+			break;
+		default:
+			Game::AddMessage("DC Error: Invalid Blight spawn shape!", Tethys::SoundID::Dirt);
+			break;
+		}
+
+		switch (speed)
+		{
+		case BlightLavaSpeed::Stopped:
+			Game::SetBlightSpeed(0);
+			break;
+		case BlightLavaSpeed::VerySlow:
+			Game::SetBlightSpeed(10);
+			break;
+		case BlightLavaSpeed::Slower:
+			Game::SetBlightSpeed(24);
+			break;
+		case BlightLavaSpeed::Slow:
+			Game::SetBlightSpeed(41);
+			break;
+		case BlightLavaSpeed::MediumSlow:
+			Game::SetBlightSpeed(63);
+			break;
+		case BlightLavaSpeed::Medium:
+			Game::SetBlightSpeed(81);
+			break;
+		case BlightLavaSpeed::MediumFast:
+			Game::SetBlightSpeed(99);
+			break;
+		case BlightLavaSpeed::Fast:
+			Game::SetBlightSpeed(132);
+			break;
+		case BlightLavaSpeed::Faster:
+			Game::SetBlightSpeed(157);
+			break;
+		case BlightLavaSpeed::VeryFast:
+			Game::SetBlightSpeed(180);
+			break;
+		case BlightLavaSpeed::Fastest:
+			Game::SetBlightSpeed(210);
+			break;
+		case BlightLavaSpeed::Instant:
+			Game::SetBlightSpeed(2000);
+			break;
+		case BlightLavaSpeed::NoChange:
+		default:
+			break;
+		}
+	}
+
+	if (infect && !noWarning)
+	{
+		Game::AddMessage("Microbe growth detected!", SoundID::Savnt278, -1, Location(spawnAt.x, spawnAt.y));
+	}
+}
+
+void DisasterCreator::SetBlightSpeed(BlightLavaSpeed speed)
+{
+	if (speed < BlightLavaSpeed::Stopped || speed > BlightLavaSpeed::Instant)
+	{
+		Game::AddMessage("DC Error: Invalid Blight spread speed!", Tethys::SoundID::Dirt);
+	}
+	else
+	{
+		Game::SetBlightSpeed(GetSpreadSpeed(speed));
+	}
+}
+
+void DisasterCreator::SetBlightPreciseSpeed(int newSpeed)
+{
+	if (newSpeed < 0)
+	{
+		Game::AddMessage("DC Error: Precise speed must be non-negative!", Tethys::SoundID::Dirt);
+	}
+	else
+	{
+		Game::SetBlightSpeed(newSpeed);
+	}
 }

@@ -1,23 +1,27 @@
+#include <Tethys/API/API.h>
 #include "DisasterCreator.h"
+
+using namespace Tethys;
+using namespace Tethys::TethysAPI;
 
 /*
   Code for the various methods a disaster finds its target.
 */
 
-LOCATION DisasterCreator::GetDisasterTarget(disTarget trgType, disType type)
+Location DisasterCreator::GetDisasterTarget(DisasterTarget trgType, DisasterType type)
 {
 	// Return value
-	LOCATION tLocation;
+	Location tLocation;
 
 	switch (trgType)
 	{
-		case trgRandom:
+		case DisasterTarget::Random:
 			tLocation = TargetRandomLocation();
 			break;
-		case trgZone:
+		case DisasterTarget::Zone:
 			tLocation = TargetLocationInZone(type);
 			break;
-		case trgPlayer:
+		case DisasterTarget::Player:
 			tLocation = TargetPlayer();
 			break;
 	}
@@ -25,19 +29,19 @@ LOCATION DisasterCreator::GetDisasterTarget(disTarget trgType, disType type)
 	return tLocation;
 }
 
-LOCATION DisasterCreator::TargetRandomLocation()
+Location DisasterCreator::TargetRandomLocation()
 {
 	// Just pick a random spot on the map.  Easy.
-	LOCATION tLocation;
-	tLocation.x = TethysGame::GetRand(mapSize.x) + mapXOffset + 1;	// +1 so disasters don't spawn at x = 0
-	tLocation.y = TethysGame::GetRand(mapSize.y) - 1;
-	return tLocation;
+	int x, y;
+	x = Game::GetRand(GameMap::GetWidth() + 1);	// +1 so disasters don't spawn at x = 0
+	y = Game::GetRand(GameMap::GetHeight());
+	return Location(x, y);
 }
 
-LOCATION DisasterCreator::TargetLocationInZone(disType type)
+Location DisasterCreator::TargetLocationInZone(DisasterType type)
 {
 	// Return value.
-	LOCATION tLocation;
+	Location tLocation;
 
 	// Iterate through the zone list for each zone defined for the current disaster type.  Pick one at random.
 	int zoneScore = 0;
@@ -46,7 +50,7 @@ LOCATION DisasterCreator::TargetLocationInZone(disType type)
 	{
 		if (AllZones[i].zoneType == type)
 		{
-			int tScore = TethysGame::GetRand(100) + 1;	// +1 so it will always be > 0
+			int tScore = Game::GetRand(100) + 1;	// +1 so it will always be > 0
 			if (tScore > zoneScore)
 			{
 				zoneScore = tScore;
@@ -55,7 +59,7 @@ LOCATION DisasterCreator::TargetLocationInZone(disType type)
 		}
 	}
 
-	// Check if we actually found a zone; if not get a random location
+	// Check if we actually found a zone; if not get a random Location
 	if (toUse == nullptr)
 	{
 		tLocation = TargetRandomLocation();
@@ -63,38 +67,60 @@ LOCATION DisasterCreator::TargetLocationInZone(disType type)
 	else
 	{
 		// Get a random point inside this zone.
-		tLocation = LOCATION(TethysGame::GetRand(toUse->zoneRect.Width()) + toUse->zoneRect.x1,
-			                 TethysGame::GetRand(toUse->zoneRect.Height()) + toUse->zoneRect.y1);
+		tLocation = Location(Game::GetRand(toUse->zoneRect.Width()) + toUse->zoneRect.x1,
+			                    Game::GetRand(toUse->zoneRect.Height()) + toUse->zoneRect.y1);
 	}
 
 	return tLocation;
 }
 
-LOCATION DisasterCreator::TargetPlayer()
+Location DisasterCreator::TargetPlayer()
 {
 	// Return value.
-	LOCATION tLocation;
+	Location tLocation;
 
-	// Pick a player at random to torment.
-	int tPlayer = TethysGame::GetRand(numPlayers);
+	// Pick a player at random to torment from the list of non-ignored players.
+	int tPlayer = -1;
+
+	// Randomly reorder the list (backwards)
+	int next, start;
+	start = next = Game::GetRand(7);
+	do
+	{
+		if (!ignorePlayer[next])
+		{
+			tPlayer = next;
+			break;
+		}
+		else
+		{
+			next++;
+			next %= 7;
+		}
+	} while (next != start);
+
+	// All players are marked as ignored.  That's not my problem!
+	if (tPlayer == -1)
+	{
+		tPlayer = Game::GetRand(Game::NumPlayers());
+	}
 
 	// Flip a coin: heads, we target a random vehicle belonging to this player.
 	// Tails, we find the middle of their base and target that.
-	if (TethysGame::GetRand(2) == 0)
+	if (Game::GetRand(2) == 0)
 	{
 		// Random unit mode.  Give each unit a random score, 0-99.  The highest scoring unit "wins".
-		Unit targUnit, tempUnit;
+		Unit targUnit;
 		int targScore = -1,
 			tempScore;
-		PlayerVehicleEnum FindTarget(tPlayer);
-		while (FindTarget.GetNext(tempUnit))
+		for (Unit tempUnit : PlayerVehicleEnum(tPlayer, MapID::Any))
 		{
 			if (!tempUnit.IsLive())
 			{
 				continue;
 			}
 
-			tempScore = TethysGame::GetRand(100);
+			tempScore = Game::GetRand(100);
 			if (tempScore > targScore)
 			{
 				targScore = tempScore;
@@ -113,23 +139,21 @@ LOCATION DisasterCreator::TargetPlayer()
 		// has no units to target.
 		if (targScore >= 0)
 		{
-			tLocation = TargetWithinRadius(targUnit.Location());
+			tLocation = TargetWithinRadius(targUnit.GetLocation());
 		}
-		//  Fall back to a purely random location.
+		//  Fall back to a purely random Location.
 		else
 		{
 			tLocation = TargetRandomLocation();
 		}
-
 	}
 
 	else
 	{
-		// Fancypants mode.  Find the "midpoint" location for each of this player's structures.
+		// Fancypants mode.  Find the "midpoint" Location for each of this player's structures.
 		int x = 0, y = 0, total = 0;
 		Unit tempUnit;
-		PlayerBuildingEnum FindTarget(tPlayer, mapNone);
-		while (FindTarget.GetNext(tempUnit))
+		for (Unit tempUnit : PlayerBuildingEnum(tPlayer, MapID::Any))
 		{
 			if (!tempUnit.IsLive() ||
 				!tempUnit.IsBuilding())
@@ -138,16 +162,16 @@ LOCATION DisasterCreator::TargetPlayer()
 			}
 
 			total++;
-			x += tempUnit.Location().x;
-			y += tempUnit.Location().y;
+			x += tempUnit.GetLocation().x;
+			y += tempUnit.GetLocation().y;
 		}
 
 		// Get base midpoint (unless no buildings found)
 		if (total > 0)
 		{
-			tLocation = TargetWithinRadius(LOCATION(x / total, y / total));
+			tLocation = TargetWithinRadius(Location(x / total, y / total));
 		}
-		// Fall back to a purely random location.
+		// Fall back to a purely random Location.
 		else
 		{
 			tLocation = TargetRandomLocation();
@@ -157,22 +181,22 @@ LOCATION DisasterCreator::TargetPlayer()
 	return tLocation;
 }
 
-LOCATION DisasterCreator::GetVortexDestination(LOCATION source)
+Location DisasterCreator::GetVortexDestination(Location source)
 {
 	// Vortexes should rampage through player bases. >:D
 	// To that end, the destination should be within a (relatively) small radius from the source.
-	double t = ((double)TethysGame::GetRand(101) / 100.00) * 3.14 * 2;
-	LOCATION retLoc = LOCATION((int)(cos(t) * 9), (int)(sin(t) * 9));	// Radius is 9
+	double t = ((double)Game::GetRand(101) / 100.00) * 3.14 * 2;
+	Location retLoc = Location((int)(cos(t) * 9), (int)(sin(t) * 9));	// Radius is 9
 	retLoc.Clip();
 
 	return retLoc;
 }
 
-LOCATION DisasterCreator::GetStormDestination(LOCATION source)
+Location DisasterCreator::GetStormDestination(Location source)
 {
 	// Storms should move towards the edges of the map.
-	double t = ((double)TethysGame::GetRand(101) / 100.00) * 3.14 * 2;
-	LOCATION retLoc = LOCATION((int)(cos(t) * 150), (int)(sin(t) * 150));	// Radius is 150, which is actually bigger than the map, but good thing for .Clip()
+	double t = ((double)Game::GetRand(101) / 100.00) * 3.14 * 2;
+	Location retLoc = Location((int)(cos(t) * 150), (int)(sin(t) * 150));	// Radius is 150, which is actually bigger than the map, but good thing for .Clip()
 	retLoc.Clip();
 
 	// Magic time: if we create a storm too close to the source, try again.
@@ -184,18 +208,18 @@ LOCATION DisasterCreator::GetStormDestination(LOCATION source)
 	return retLoc;
 }
 
-LOCATION DisasterCreator::TargetWithinRadius(LOCATION target)
+Location DisasterCreator::TargetWithinRadius(Location target)
 {
-	double r = 30 * sqrt(((double)TethysGame::GetRand(101) / 100.00));
-	double t = ((double)TethysGame::GetRand(101) / 100) * 3.14 * 2;
+	double r = 30 * sqrt(((double)Game::GetRand(101) / 100.00));
+	double t = ((double)Game::GetRand(101) / 100) * 3.14 * 2;
 
-	LOCATION retLoc = LOCATION((int)(target.x + r * cos(t)), (int)(target.y + r * sin(t)));
+	Location retLoc = Location((int)(target.x + r * cos(t)), (int)(target.y + r * sin(t)));
 	retLoc.Clip();
 	return retLoc;
 }
 
 // Derived from http://www.flipcode.com/archives/Fast_Approximate_Distance_Functions.shtml
-int DisasterCreator::ApproxDistance(LOCATION s, LOCATION d)
+int DisasterCreator::ApproxDistance(Location s, Location d)
 {
 	int min,
 		max,

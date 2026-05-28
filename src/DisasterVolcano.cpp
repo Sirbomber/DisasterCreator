@@ -1,23 +1,24 @@
+#include <Tethys/API/API.h>
 #include "DisasterCreator.h"
 
-/*
-  Code that assists level creators with the eruption of volcanoes.
-*/
+using namespace Tethys;
+using namespace Tethys::TethysAPI;
 
-void DisasterCreator::DefineVolcano(LOCATION volcLoc, int lavaAnimTime, int eruptTime, disVolcanoDir dir, disSpeed speed)
+void DisasterCreator::DefineVolcano(Location volcLoc, int lavaAnimTime, int eruptTime, VolcanoDirection dir, BlightLavaSpeed speed)
 {
 	// Limit check.
 	if (numVolcanoesDefined >= MAX_SIZE)
 	{
-		TethysGame::AddMessage(-1, -1, "DC Error: Too many volcanoes!", -1, sndDirt);
+		Game::AddMessage("DC Error: Too many volcanoes!", SoundID::Dirt);
+		return;
 	}
 
 	// Sanity checks.
 	if (lavaAnimTime > eruptTime ||
-		dir < volSouth || dir > volNone ||
-		speed < spdStopped || speed > spdInstant)
+		dir < VolcanoDirection::South || dir > VolcanoDirection::None ||
+		speed < BlightLavaSpeed::Stopped || speed > BlightLavaSpeed::Instant)
 	{
-		TethysGame::AddMessage(-1, -1, "DC Error: Bad volcano definition!", -1, sndDirt);
+		Game::AddMessage("DC Error: Bad volcano definition!", SoundID::Dirt);
 		return;
 	}
 
@@ -29,15 +30,23 @@ void DisasterCreator::DefineVolcano(LOCATION volcLoc, int lavaAnimTime, int erup
 	AllVolcanoes[numVolcanoesDefined].eruptTime = eruptTime;
 	AllVolcanoes[numVolcanoesDefined].direction = dir;
 	AllVolcanoes[numVolcanoesDefined].speed = speed;
-	numVolcanoesDefined++;
-
 
 	// Set tiles as lava-possible.
-	GameMap::SetLavaPossible(LOCATION(volcLoc.x, volcLoc.y), 1);
-	GameMap::SetLavaPossible(LOCATION(volcLoc.x, volcLoc.y+1), 1);
-	GameMap::SetLavaPossible(LOCATION(volcLoc.x, volcLoc.y+2), 1);
-	GameMap::SetLavaPossible(LOCATION(volcLoc.x, volcLoc.y+3), 1);
-	GameMap::SetLavaPossible(LOCATION(volcLoc.x, volcLoc.y+4), 1);
+	GameMap::SetLavaPossible(Location(volcLoc.x, volcLoc.y), 1);
+	GameMap::SetLavaPossible(Location(volcLoc.x, volcLoc.y+1), 1);
+	GameMap::SetLavaPossible(Location(volcLoc.x, volcLoc.y+2), 1);
+	GameMap::SetLavaPossible(Location(volcLoc.x, volcLoc.y+3), 1);
+	GameMap::SetLavaPossible(Location(volcLoc.x, volcLoc.y+4), 1);
+
+	// If current game time has surpassed the animation start time, automatically start the eruption animation (but let the regular CheckVolcanoes function handle setting the eruption).
+	if (lavaAnimTime <= Game::Tick())
+	{
+		AnimateVolcano(&AllVolcanoes[numVolcanoesDefined]);
+	}
+
+
+	// Increment volcano count
+	numVolcanoesDefined++;
 }
 
 void DisasterCreator::CheckVolcanoes()
@@ -48,7 +57,7 @@ void DisasterCreator::CheckVolcanoes()
 	{
 		// Check if the warn time has passed.
 		if (!AllVolcanoes[i].animStarted &&
-			TethysGame::Tick() >= AllVolcanoes[i].warnTime)
+			Game::Tick() >= AllVolcanoes[i].warnTime)
 		{
 			AnimateVolcano(&AllVolcanoes[i]);
 			i++;
@@ -56,7 +65,7 @@ void DisasterCreator::CheckVolcanoes()
 
 		// Check if the eruption time has passed.
 		else if (!AllVolcanoes[i].eruptionSet &&
-			     TethysGame::Tick() >= AllVolcanoes[i].eruptTime)
+			     Game::Tick() >= AllVolcanoes[i].eruptTime)
 		{
 			EruptVolcano(&AllVolcanoes[i]);
 			i++;
@@ -64,8 +73,8 @@ void DisasterCreator::CheckVolcanoes()
 
 		// Check if we should stop the animation.
 		// Once we do that, we don't care about this volcano anymore, so we can remove it from the list.
-		else if (!AllVolcanoes[i].eruptionSet &&
-			TethysGame::Tick() >= AllVolcanoes[i].eruptTime + 980)
+		else if (AllVolcanoes[i].eruptionSet &&
+			Game::Tick() >= AllVolcanoes[i].eruptTime + 980)
 		{
 			StopVolcano(&AllVolcanoes[i]);
 			EraseVolcano(i);
@@ -94,14 +103,14 @@ void DisasterCreator::AnimateVolcano(Volcano *v)
 	v->animStarted = true;
 	switch (v->direction)
 	{
-		case volSouth:
-			AnimateFlowS(LOCATION(v->eruptAt.x, v->eruptAt.y - 1));
+		case VolcanoDirection::South:
+			AnimateFlowS(Location(v->eruptAt.x, v->eruptAt.y - 1));
 			break;
-		case volSouthEast:
-			AnimateFlowSE(LOCATION(v->eruptAt.x - 1, v->eruptAt.y - 1));
+		case VolcanoDirection::SouthEast:
+			AnimateFlowSE(Location(v->eruptAt.x - 1, v->eruptAt.y - 1));
 			break;
-		case volSouthWest:
-			AnimateFlowSW(LOCATION(v->eruptAt.x, v->eruptAt.y - 1));
+		case VolcanoDirection::SouthWest:
+			AnimateFlowSW(Location(v->eruptAt.x, v->eruptAt.y - 1));
 			break;
 	}
 }
@@ -109,48 +118,83 @@ void DisasterCreator::AnimateVolcano(Volcano *v)
 void DisasterCreator::EruptVolcano(Volcano *v)
 {
 	v->eruptionSet = true;
-	TethysGame::SetEruption(v->eruptAt.x, v->eruptAt.y, GetSpreadSpeed(v->speed));
+	Game::CreateEruption(v->eruptAt, GetSpreadSpeed(v->speed));
 }
 
 void DisasterCreator::StopVolcano(Volcano *v)
 {
 	switch (v->direction)
 	{
-	case volSouth:
-		FreezeFlowS(LOCATION(v->eruptAt.x, v->eruptAt.y - 1));
+	case VolcanoDirection::South:
+		FreezeFlowS(Location(v->eruptAt.x, v->eruptAt.y - 1));
 		break;
-	case volSouthEast:
-		FreezeFlowSE(LOCATION(v->eruptAt.x - 1, v->eruptAt.y - 1));
+	case VolcanoDirection::SouthEast:
+		FreezeFlowSE(Location(v->eruptAt.x - 1, v->eruptAt.y - 1));
 		break;
-	case volSouthWest:
-		FreezeFlowSW(LOCATION(v->eruptAt.x, v->eruptAt.y - 1));
+	case VolcanoDirection::SouthWest:
+		FreezeFlowSW(Location(v->eruptAt.x, v->eruptAt.y - 1));
 		break;
 	}
 }
 
-int DisasterCreator::GetSpreadSpeed(disSpeed speed)
+void DisasterCreator::SetLavaSpeed(BlightLavaSpeed newSpeed)
 {
-	// To-Do: Make these a function of map size
+	if (newSpeed < BlightLavaSpeed::Stopped || newSpeed > BlightLavaSpeed::Instant)
+	{
+		Game::AddMessage("DC Error: Invalid lava spread speed!", Tethys::SoundID::Dirt);
+	}
+	else
+	{
+		Game::SetLavaSpeed(GetSpreadSpeed(newSpeed));
+	}
+}
+
+int DisasterCreator::GetSpreadSpeed(BlightLavaSpeed speed)
+{
 	int actualSpeed;
 	switch (speed)
 	{
-	case spdStopped:
+	case BlightLavaSpeed::Stopped:
 		actualSpeed = 0;
 		break;
-	case spdSlow:
+	case BlightLavaSpeed::VerySlow:
 		actualSpeed = 15;
 		break;
-	case spdMedium:
+	case BlightLavaSpeed::Slow:
 		actualSpeed = 45;
 		break;
-	case spdFast:
+	case BlightLavaSpeed::Slower:
 		actualSpeed = 85;
 		break;
-	case spdInstant:
+	case BlightLavaSpeed::MediumSlow:
+		actualSpeed = 135;
+		break;
+	case BlightLavaSpeed::Medium:
+		actualSpeed = 170;
+		break;
+	case BlightLavaSpeed::MediumFast:
+		actualSpeed = 210;
+		break;
+	case BlightLavaSpeed::Fast:
+		actualSpeed = 270;
+		break;
+	case BlightLavaSpeed::Faster:
+		actualSpeed = 360;
+		break;
+	case BlightLavaSpeed::VeryFast:
+		actualSpeed = 440;
+		break;
+	case BlightLavaSpeed::Fastest:
+		actualSpeed = 510;
+		break;
+	case BlightLavaSpeed::Instant:
 		actualSpeed = 4096;
 		break;
+	case BlightLavaSpeed::NoChange:
+		actualSpeed = lastLavaSpeed;
+		break;
 	default:
-		TethysGame::AddMessage(-1, -1, "DC Error: Unknown spread speed!", -1, sndDirt);
+		Game::AddMessage("DC Error: Unknown spread speed!", Tethys::SoundID::Dirt);
 		actualSpeed = 0;
 		break;
 	}
@@ -158,19 +202,31 @@ int DisasterCreator::GetSpreadSpeed(disSpeed speed)
 	return actualSpeed;
 }
 
+void DisasterCreator::SetLavaPreciseSpeed(int newSpeed)
+{
+	if (newSpeed < 0)
+	{
+		Game::AddMessage("DC Error: Precise speed must be non-negative!", Tethys::SoundID::Dirt);
+	}
+	else
+	{
+		Game::SetLavaSpeed(newSpeed);
+	}
+}
+
 void DisasterCreator::SetLavaTiles()
 {
 	SetLavaTiles({});
 }
 
-void DisasterCreator::SetLavaTiles(const vector<CellTypes>& optionalTypes)
+void DisasterCreator::SetLavaTiles(const vector<CellType>& optionalTypes)
 {
-	for (int x = 0; x < mapSize.x; x++)
+	for (int x = 0; x < GameMap::GetWidth(); x++)
 	{
-		for (int y = 0; y < mapSize.y; y++)
+		for (int y = 0; y < GameMap::GetHeight(); y++)
 		{
 			// Check if black rock.  Note that gray/black border tiles show lava correctly; orange/black do not however.
-			int curTile = GameMap::GetTile(LOCATION(x + mapXOffset, y - 1));
+			int curTile = GameMap::GetTile(Location(x, y));
 			if ((curTile >= 439 && curTile <= 536) ||
 				(curTile >= 559 && curTile <= 606) ||
 				curTile == 718 || curTile == 547 || curTile == 698 || curTile == 683 || 
@@ -180,17 +236,66 @@ void DisasterCreator::SetLavaTiles(const vector<CellTypes>& optionalTypes)
 				// If no additional celltype checking, set lava possible.
 				if (optionalTypes.size() == 0)
 				{
-					GameMap::SetLavaPossible(LOCATION(x + mapXOffset, y - 1), true);
+					GameMap::SetLavaPossible(Location(x, y), true);
 				}
 				// Else we need to check if the current tile's celltype is one of those passed in.
 				for (int i = 0; i < (int)optionalTypes.size(); i++)
 				{
-					if (GameMap::GetCellType(LOCATION(x + mapXOffset, y - 1)) == optionalTypes[i])
+					if (GameMap::GetCellType(Location(x, y)) == optionalTypes[i])
 					{
-						GameMap::SetLavaPossible(LOCATION(x + mapXOffset, y - 1), true);
+						GameMap::SetLavaPossible(Location(x, y), true);
 					}
 				}
 			}
 		}
 	}
+}
+
+// ----------------------------------------------------------------------------
+// Copied from OP2Helper, but rewritten to use TethysAPI.  If OP2Helper ever gets rewritten to use TethysAPI, these members can be removed.
+// ----------------------------------------------------------------------------
+
+void DisasterCreator::AnimateFlowSW(const Location& loc)
+{
+	GameMap::SetTile(loc + Location(1, 0), 0x453);
+	GameMap::SetTile(loc, 0x447);
+	GameMap::SetTile(loc + Location(0, 1), 0x45E);
+	GameMap::SetTile(loc + Location(1, 1), 0x469);
+}
+
+void DisasterCreator::AnimateFlowS(const Location& loc)
+{
+	GameMap::SetTile(loc, 0x474);
+	GameMap::SetTile(loc + Location(0, 1), 0x47E);
+}
+
+void DisasterCreator::AnimateFlowSE(const Location& loc)
+{
+	GameMap::SetTile(loc, 0x489);
+	GameMap::SetTile(loc + Location(0, 1), 0x4A0);
+	GameMap::SetTile(loc + Location(1, 1), 0x4AB);
+	GameMap::SetTile(loc + Location(1, 0), 0x494);
+}
+
+
+void DisasterCreator::FreezeFlowSW(const Location& loc)
+{
+	GameMap::SetTile(loc + Location(1, 0), 0x45A);
+	GameMap::SetTile(loc, 0x44F);
+	GameMap::SetTile(loc + Location(0, 1), 0x465);
+	GameMap::SetTile(loc + Location(1, 1), 0x470);
+}
+
+void DisasterCreator::FreezeFlowS(const Location& loc)
+{
+	GameMap::SetTile(loc, 0x47B);
+	GameMap::SetTile(loc + Location(0, 1), 0x486);
+}
+
+void DisasterCreator::FreezeFlowSE(const Location& loc)
+{
+	GameMap::SetTile(loc, 0x490);
+	GameMap::SetTile(loc + Location(0, 1), 0x4A8);
+	GameMap::SetTile(loc + Location(1, 1), 0x4B2);
+	GameMap::SetTile(loc + Location(1, 0), 0x49C);
 }

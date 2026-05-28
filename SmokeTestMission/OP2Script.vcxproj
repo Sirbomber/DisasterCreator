@@ -15,37 +15,33 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MissionEnd.cpp" />
-    <ClCompile Include="Sample.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="MissionEnd.h" />
+    <ClCompile Include="DcTestMain.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectName>DC Sample Mission</ProjectName>
     <ProjectGuid>{371F4704-3EB9-48BE-B94E-0C0B8F17AAF9}</ProjectGuid>
     <RootNamespace>OP2Script</RootNamespace>
     <Keyword>AtlProj</Keyword>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release With Debug Info|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <UseOfAtl>Dynamic</UseOfAtl>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <UseOfAtl>Dynamic</UseOfAtl>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <UseOfAtl>Dynamic</UseOfAtl>
     <CharacterSet>MultiByte</CharacterSet>
@@ -74,21 +70,21 @@
     <IntDir>$(OutDir)</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
-    <TargetName>c_dcsmp</TargetName>
+    <TargetName>dctest</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>.\Debug\</OutDir>
     <IntDir>$(OutDir)</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
-    <TargetName>c_dcsmp</TargetName>
+    <TargetName>dctest</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release With Debug Info|Win32'">
     <OutDir>.\ReleaseDebugInfo\</OutDir>
     <IntDir>$(OutDir)</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
-    <TargetName>c_dcsmp</TargetName>
+    <TargetName>dctest</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Midl>
@@ -98,7 +94,7 @@
     <ClCompile>
       <Optimization>MinSpace</Optimization>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
-      <AdditionalIncludeDirectories>..\Include;..\Include\DisasterCreator;..\Patches;..\Outpost2App;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\OP2 Levels\Include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;WIN32_LEAN_AND_MEAN;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -110,7 +106,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DisableSpecificWarnings>4005;%(DisableSpecificWarnings)</DisableSpecificWarnings>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalOptions>/Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
@@ -118,7 +114,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>..\Lib\Outpost2DLL.lib;..\Lib\OP2Helper.lib;..\Lib\hfl.lib;..\Lib\OP2Disasters.lib;..\Lib\Patches.lib;User32.lib;vfw32.lib;gdi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\OP2 Levels\Lib\OP2Disasters.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreSpecificDefaultLibraries>
@@ -138,7 +134,7 @@
     </Bscmake>
     <PostBuildEvent>
       <Message>Copying DLL to Outpost2 folder...</Message>
-      <Command>xcopy /y /d "$(TargetPath)" "C:\Sierra\Outpost 2 Divided Destiny\"</Command>
+      <Command>xcopy /y /d "$(TargetPath)" "C:\Sierra\Outpost 2 Divided Destiny\OPU\maps\Dev\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -149,7 +145,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
-      <AdditionalIncludeDirectories>..\Include;..\Patches;..\Outpost2App;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\OP2 Levels\Include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -161,7 +157,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalOptions>/Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
@@ -169,7 +165,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>..\Lib\Outpost2DLL.lib;..\Lib\OP2Helper.lib;..\Lib\hfl.lib;..\Lib\OP2Disasters.lib;..\Lib\Patches.lib;User32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\OP2 Levels\Lib\OP2Disasters.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreSpecificDefaultLibraries>
@@ -190,7 +186,7 @@
     </Bscmake>
     <PostBuildEvent>
       <Message>Copying DLL to Outpost2 folder...</Message>
-      <Command>xcopy /y /d "$(TargetPath)" "C:\Sierra\Outpost 2 Divided Destiny\"</Command>
+      <Command>xcopy /y /d "$(TargetPath)" "C:\Sierra\Outpost 2 Divided Destiny\OPU\maps\Dev\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release With Debug Info|Win32'">
@@ -201,7 +197,7 @@
     <ClCompile>
       <Optimization>MinSpace</Optimization>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
-      <AdditionalIncludeDirectories>..\Common\include;.\include;..\..\Include;..\..\Patches;..\..\Outpost2App;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\OP2 Levels\Include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;WIN32_LEAN_AND_MEAN;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -214,7 +210,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <DisableSpecificWarnings>4005;%(DisableSpecificWarnings)</DisableSpecificWarnings>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalOptions>/Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
@@ -222,7 +218,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>..\Lib\Outpost2DLL.lib;..\Lib\OP2Helper.lib;..\Lib\hfl.lib;..\Lib\OP2Disasters.lib;..\..\Lib\Hackaray.lib;User32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\OP2 Levels\Lib\OP2Disasters.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreSpecificDefaultLibraries>
@@ -243,7 +239,7 @@
     </Bscmake>
     <PostBuildEvent>
       <Message>Copying DLL to Outpost2 folder...</Message>
-      <Command>xcopy /y /d "$(TargetPath)" "C:\Sierra\Outpost 2 Divided Destiny\"</Command>
+      <Command>xcopy /y /d "$(TargetPath)" "C:\Sierra\Outpost 2 Divided Destiny\OPU\maps\Dev\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
